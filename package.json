@@ -1,7 +1,7 @@
 {
   "name": "markdown-reflow",
   "displayName": "Markdown Reflow",
-  "description": "Manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
+  "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
   "version": "0.3.0",
   "publisher": "rushinglabs",
   "license": "MIT",
@@ -21,6 +21,8 @@
     "formatting"
   ],
   "activationEvents": [
+    "onLanguage:markdown",
+    "onLanguage:mdx",
     "onCommand:markdownReflow.reflow",
     "onCommand:markdownReflow.generateToc"
   ],
@@ -89,6 +91,11 @@
           "default": 100,
           "minimum": 20,
           "description": "Maximum line length for wrapped prose."
+        },
+        "markdownReflow.automaticReflow": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, automatically reflow prose while typing after edited lines exceed the maximum line length."
         },
         "markdownReflow.languages": {
           "type": "array",

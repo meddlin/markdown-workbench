@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New: Automatically reflow Markdown/MDX prose while typing when an edited line exceeds the
+  configured maximum line length.
+- New: Added `markdownReflow.automaticReflow` to toggle automatic reflow on or off.
+
 ## 0.3.0
 
 - New: Generate an anchor-linked table of contents from Markdown headings.
