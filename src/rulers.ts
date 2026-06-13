@@ -3,12 +3,13 @@ export type EditorRuler = number | { column: number; color?: string; [key: strin
 export interface MaxLineLengthRulerSyncOptions {
   enabled: boolean
   maxLineLength: number
-  previousManagedLineLength: number | undefined
+  color: string
+  previousManagedRuler: EditorRuler | undefined
 }
 
 export interface MaxLineLengthRulerSyncResult {
   rulers: EditorRuler[]
-  managedLineLength: number | undefined
+  managedRuler: EditorRuler | undefined
   changed: boolean
 }
 
@@ -18,49 +19,54 @@ export function syncMaxLineLengthRulers(
 ): MaxLineLengthRulerSyncResult {
   let originalRulers = rulers ?? []
   let nextRulers = [...originalRulers]
+  let nextManagedRuler: EditorRuler = {
+    column: options.maxLineLength,
+    color: options.color,
+  }
 
   if (
-    options.previousManagedLineLength !== undefined &&
-    (!options.enabled || options.previousManagedLineLength !== options.maxLineLength)
+    options.previousManagedRuler !== undefined &&
+    (!options.enabled || !rulersMatch(options.previousManagedRuler, nextManagedRuler))
   ) {
-    nextRulers = removeOneNumericRuler(nextRulers, options.previousManagedLineLength)
+    nextRulers = removeOneRuler(nextRulers, options.previousManagedRuler)
   }
 
   if (!options.enabled) {
     return {
       rulers: nextRulers,
-      managedLineLength: undefined,
+      managedRuler: undefined,
       changed: !rulersAreEqual(originalRulers, nextRulers),
     }
   }
 
   if (hasRulerAtColumn(nextRulers, options.maxLineLength)) {
-    let managedLineLength =
-      options.previousManagedLineLength === options.maxLineLength &&
-      hasNumericRulerAtColumn(nextRulers, options.maxLineLength)
-        ? options.maxLineLength
+    let managedRuler =
+      options.previousManagedRuler !== undefined &&
+      rulersMatch(options.previousManagedRuler, nextManagedRuler) &&
+      hasRuler(nextRulers, nextManagedRuler)
+        ? nextManagedRuler
         : undefined
 
     return {
       rulers: nextRulers,
-      managedLineLength,
+      managedRuler,
       changed: !rulersAreEqual(originalRulers, nextRulers),
     }
   }
 
-  nextRulers.push(options.maxLineLength)
+  nextRulers.push(nextManagedRuler)
 
   return {
     rulers: nextRulers,
-    managedLineLength: options.maxLineLength,
+    managedRuler: nextManagedRuler,
     changed: true,
   }
 }
 
-function removeOneNumericRuler(rulers: readonly EditorRuler[], column: number): EditorRuler[] {
+function removeOneRuler(rulers: readonly EditorRuler[], rulerToRemove: EditorRuler): EditorRuler[] {
   let removed = false
   return rulers.filter((ruler) => {
-    if (!removed && ruler === column) {
+    if (!removed && rulersMatch(ruler, rulerToRemove)) {
       removed = true
       return false
     }
@@ -69,16 +75,24 @@ function removeOneNumericRuler(rulers: readonly EditorRuler[], column: number): 
   })
 }
 
+function hasRuler(rulers: readonly EditorRuler[], rulerToFind: EditorRuler): boolean {
+  return rulers.some((ruler) => rulersMatch(ruler, rulerToFind))
+}
+
 function hasRulerAtColumn(rulers: readonly EditorRuler[], column: number): boolean {
   return rulers.some((ruler) => getRulerColumn(ruler) === column)
 }
 
-function hasNumericRulerAtColumn(rulers: readonly EditorRuler[], column: number): boolean {
-  return rulers.some((ruler) => ruler === column)
-}
-
 function getRulerColumn(ruler: EditorRuler): number | undefined {
   return typeof ruler === 'number' ? ruler : ruler.column
+}
+
+function rulersMatch(a: EditorRuler, b: EditorRuler): boolean {
+  if (typeof a === 'number' || typeof b === 'number') {
+    return a === b
+  }
+
+  return a.column === b.column && a.color === b.color
 }
 
 function rulersAreEqual(a: readonly EditorRuler[], b: readonly EditorRuler[]): boolean {
@@ -86,5 +100,5 @@ function rulersAreEqual(a: readonly EditorRuler[], b: readonly EditorRuler[]): b
     return false
   }
 
-  return a.every((ruler, index) => ruler === b[index])
+  return a.every((ruler, index) => rulersMatch(ruler, b[index]))
 }

@@ -5,6 +5,8 @@
 - New: Added a maximum line length editor ruler that follows `markdownReflow.maxLineLength`.
 - New: Added `Markdown Reflow: Toggle Maximum Line Length Indicator` and
   `markdownReflow.showMaxLineLengthIndicator` to show or hide the ruler.
+- New: Added `Markdown Reflow: Set Maximum Line Length Indicator Color` and
+  `markdownReflow.maxLineLengthIndicatorColor` to set the ruler color.
 
 ## 0.4.0
 

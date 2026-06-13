@@ -6,6 +6,13 @@ import {
   lineRangeExceedsMaxLineLength,
   type TextReplacement,
 } from './automaticReflow'
+import {
+  defaultMaxLineLengthIndicatorColor,
+  getMaxLineLengthIndicatorColorInputValidationMessage,
+  maxLineLengthIndicatorColorChoices,
+  resolveMaxLineLengthIndicatorColor,
+  tryResolveMaxLineLengthIndicatorColor,
+} from './indicatorColor'
 import { reflowMarkdownLike, type LineRange, type ReflowOptions } from './reflow'
 import {
   getMaxLineLengthInputValidationMessage,
@@ -17,7 +24,7 @@ import { insertMarkdownTableOfContents } from './toc'
 const automaticReflowDelayMs = 150
 const managedMaxLineLengthRulersStateKey = 'markdownReflow.managedMaxLineLengthRulers'
 
-type ManagedMaxLineLengthRulers = Record<string, number>
+type ManagedMaxLineLengthRulers = Record<string, EditorRuler>
 
 export function activate(context: vscode.ExtensionContext) {
   let automaticReflowEditInProgress = false
@@ -107,6 +114,71 @@ export function activate(context: vscode.ExtensionContext) {
         nextShowMaxLineLengthIndicator
           ? 'Markdown Reflow maximum line length indicator shown.'
           : 'Markdown Reflow maximum line length indicator hidden.',
+      )
+    },
+  )
+
+  let setMaxLineLengthIndicatorColorDisposable = vscode.commands.registerCommand(
+    'markdownReflow.setMaxLineLengthIndicatorColor',
+    async () => {
+      let editor = vscode.window.activeTextEditor
+      let configuration = vscode.workspace.getConfiguration('markdownReflow', editor?.document)
+      let currentColor = configuration.get<string>(
+        'maxLineLengthIndicatorColor',
+        defaultMaxLineLengthIndicatorColor,
+      )
+      let customColorPickLabel = 'Custom...'
+      let colorPick = await vscode.window.showQuickPick(
+        [
+          ...maxLineLengthIndicatorColorChoices.map((choice) => ({
+            label: choice.label,
+            description: choice.color,
+          })),
+          {
+            label: customColorPickLabel,
+            description: 'Enter a hex color',
+          },
+        ],
+        {
+          title: 'Set Maximum Line Length Indicator Color',
+          placeHolder: 'Choose a color for the Markdown Reflow line length indicator.',
+        },
+      )
+
+      if (!colorPick) {
+        return
+      }
+
+      let nextColor = colorPick.label
+
+      if (colorPick.label === customColorPickLabel) {
+        let input = await vscode.window.showInputBox({
+          title: 'Set Maximum Line Length Indicator Color',
+          prompt: 'Enter a hex color for the Markdown Reflow line length indicator.',
+          placeHolder: '#888888',
+          value: resolveMaxLineLengthIndicatorColor(currentColor),
+          validateInput: (value) =>
+            getMaxLineLengthIndicatorColorInputValidationMessage(value),
+        })
+
+        let customColor = tryResolveMaxLineLengthIndicatorColor(input)
+
+        if (customColor === undefined) {
+          return
+        }
+
+        nextColor = customColor
+      }
+
+      await configuration.update(
+        'maxLineLengthIndicatorColor',
+        nextColor,
+        getConfigurationTarget(),
+      )
+      await syncMaxLineLengthIndicators(context)
+
+      void vscode.window.showInformationMessage(
+        `Markdown Reflow maximum line length indicator color set to ${nextColor}.`,
       )
     },
   )
@@ -225,6 +297,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (
         event.affectsConfiguration('markdownReflow.maxLineLength') ||
         event.affectsConfiguration('markdownReflow.showMaxLineLengthIndicator') ||
+        event.affectsConfiguration('markdownReflow.maxLineLengthIndicatorColor') ||
         event.affectsConfiguration('markdownReflow.languages') ||
         event.affectsConfiguration('editor.rulers')
       ) {
@@ -249,6 +322,7 @@ export function activate(context: vscode.ExtensionContext) {
     reflowDisposable,
     setMaxLineLengthDisposable,
     toggleMaxLineLengthIndicatorDisposable,
+    setMaxLineLengthIndicatorColorDisposable,
     automaticReflowDisposable,
     clearAutomaticReflowTimerDisposable,
     maxLineLengthIndicatorConfigurationDisposable,
@@ -321,6 +395,12 @@ async function syncMaxLineLengthIndicators(
     true,
   )
   let maxLineLength = markdownReflowConfiguration.get<number>('maxLineLength', 100)
+  let color = resolveMaxLineLengthIndicatorColor(
+    markdownReflowConfiguration.get<string>(
+      'maxLineLengthIndicatorColor',
+      defaultMaxLineLengthIndicatorColor,
+    ),
+  )
   let languages = getMarkdownReflowLanguages(markdownReflowConfiguration)
   let activeLanguages = new Set(languages)
   let managedRulers = context.workspaceState.get<ManagedMaxLineLengthRulers>(
@@ -337,17 +417,18 @@ async function syncMaxLineLengthIndicators(
     let result = syncMaxLineLengthRulers(Array.isArray(currentRulers) ? currentRulers : [], {
       enabled: showMaxLineLengthIndicator && activeLanguages.has(languageId),
       maxLineLength,
-      previousManagedLineLength: managedRulers[languageId],
+      color,
+      previousManagedRuler: managedRulers[languageId],
     })
 
     if (result.changed) {
       await editorConfiguration.update('rulers', result.rulers, configurationTarget, true)
     }
 
-    if (result.managedLineLength === undefined) {
+    if (result.managedRuler === undefined) {
       delete nextManagedRulers[languageId]
     } else {
-      nextManagedRulers[languageId] = result.managedLineLength
+      nextManagedRulers[languageId] = result.managedRuler
     }
   }
 
