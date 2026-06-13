@@ -1,14 +1,19 @@
 # Markdown Reflow <img width="256" height="256" alt="Markdown reflow extension logo design" src="https://github.com/user-attachments/assets/73a67431-92f4-4d5d-afda-ecd915f90240" />
 
 
-Manual prose reflow for Markdown and MDX in VS Code.
+Automatic and manual prose reflow for Markdown and MDX in VS Code.
 
-This extension adds commands for reflowing Markdown prose and generating a table of contents
-from Markdown headings.
+This extension automatically reflows Markdown prose while typing and adds commands for manually
+reflowing Markdown prose and generating a table of contents from Markdown headings.
 
 ## Commands
 
 - `Markdown Reflow: Reflow Prose` wraps plain prose paragraphs to a configurable line length.
+- `Markdown Reflow: Set Maximum Line Length` updates the configured prose line length.
+- `Markdown Reflow: Toggle Maximum Line Length Indicator` shows or hides the editor ruler at
+  the configured prose line length.
+- `Markdown Reflow: Set Maximum Line Length Indicator Color` updates the editor ruler color
+  using a common color name or custom hex color.
 - `Markdown Reflow: Generate Table of Contents` inserts an anchor-linked table of contents near
   the top of the current document.
 
@@ -17,8 +22,17 @@ from Markdown headings.
 - Reflows the current selection when a selection exists and
   `markdownReflow.selectionOnlyWhenSelected` is enabled.
 - Reflows the full document when there is no selection.
+- Automatically reflows the current paragraph while typing when an edited line exceeds
+  `markdownReflow.maxLineLength`.
 - Wraps prose to `100` columns by default, or to the user-defined
   `markdownReflow.maxLineLength` value when set.
+- Shows a vertical editor ruler at `markdownReflow.maxLineLength` by default.
+- Updates `markdownReflow.maxLineLength` from the command palette when using
+  `Markdown Reflow: Set Maximum Line Length`.
+- Toggles `markdownReflow.showMaxLineLengthIndicator` from the command palette when using
+  `Markdown Reflow: Toggle Maximum Line Length Indicator`.
+- Updates `markdownReflow.maxLineLengthIndicatorColor` from the command palette when using
+  `Markdown Reflow: Set Maximum Line Length Indicator Color`.
 - Generates a table of contents from ATX headings (`#` through `######`) outside fenced code
   blocks and frontmatter.
 - Inserts the table of contents after frontmatter when frontmatter exists.
@@ -38,6 +52,9 @@ from Markdown headings.
 ## Settings
 
 - `markdownReflow.maxLineLength`
+- `markdownReflow.automaticReflow`
+- `markdownReflow.showMaxLineLengthIndicator`
+- `markdownReflow.maxLineLengthIndicatorColor`
 - `markdownReflow.languages`
 - `markdownReflow.preserveListItems`
 - `markdownReflow.selectionOnlyWhenSelected`

@@ -1,8 +1,8 @@
 {
   "name": "markdown-reflow",
   "displayName": "Markdown Reflow",
-  "description": "Manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
-  "version": "0.3.0",
+  "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
+  "version": "0.4.0",
   "publisher": "rushinglabs",
   "license": "MIT",
   "icon": "icon.png",
@@ -21,6 +21,11 @@
     "formatting"
   ],
   "activationEvents": [
+    "onLanguage:markdown",
+    "onLanguage:mdx",
+    "onCommand:markdownReflow.setMaxLineLength",
+    "onCommand:markdownReflow.toggleMaxLineLengthIndicator",
+    "onCommand:markdownReflow.setMaxLineLengthIndicatorColor",
     "onCommand:markdownReflow.reflow",
     "onCommand:markdownReflow.generateToc"
   ],
@@ -41,6 +46,18 @@
         "title": "Markdown Reflow: Reflow Prose"
       },
       {
+        "command": "markdownReflow.setMaxLineLength",
+        "title": "Markdown Reflow: Set Maximum Line Length"
+      },
+      {
+        "command": "markdownReflow.toggleMaxLineLengthIndicator",
+        "title": "Markdown Reflow: Toggle Maximum Line Length Indicator"
+      },
+      {
+        "command": "markdownReflow.setMaxLineLengthIndicatorColor",
+        "title": "Markdown Reflow: Set Maximum Line Length Indicator Color"
+      },
+      {
         "command": "markdownReflow.generateToc",
         "title": "Markdown Reflow: Generate Table of Contents"
       }
@@ -49,6 +66,18 @@
       "commandPalette": [
         {
           "command": "markdownReflow.reflow",
+          "when": "editorLangId == markdown || editorLangId == mdx"
+        },
+        {
+          "command": "markdownReflow.setMaxLineLength",
+          "when": "editorLangId == markdown || editorLangId == mdx"
+        },
+        {
+          "command": "markdownReflow.toggleMaxLineLengthIndicator",
+          "when": "editorLangId == markdown || editorLangId == mdx"
+        },
+        {
+          "command": "markdownReflow.setMaxLineLengthIndicatorColor",
           "when": "editorLangId == markdown || editorLangId == mdx"
         },
         {
@@ -89,6 +118,21 @@
           "default": 100,
           "minimum": 20,
           "description": "Maximum line length for wrapped prose."
+        },
+        "markdownReflow.automaticReflow": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, automatically reflow prose while typing after edited lines exceed the maximum line length."
+        },
+        "markdownReflow.showMaxLineLengthIndicator": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, show an editor ruler at the configured maximum line length for Markdown Reflow languages."
+        },
+        "markdownReflow.maxLineLengthIndicatorColor": {
+          "type": "string",
+          "default": "light gray",
+          "description": "Color for the maximum line length indicator. Use a supported common name such as light gray, blue, or red, or a hex color such as #888888."
         },
         "markdownReflow.languages": {
           "type": "array",
