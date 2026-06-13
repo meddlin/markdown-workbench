@@ -2,8 +2,16 @@
   "name": "markdown-reflow",
   "displayName": "Markdown Reflow",
   "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "rushinglabs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meddlin/markdown-reflow.git"
+  },
+  "homepage": "https://github.com/meddlin/markdown-reflow#readme",
+  "bugs": {
+    "url": "https://github.com/meddlin/markdown-reflow/issues"
+  },
   "license": "MIT",
   "icon": "icon.png",
   "engines": {
