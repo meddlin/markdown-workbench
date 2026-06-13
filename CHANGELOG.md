@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- New: Generate an anchor-linked table of contents from Markdown headings.
+- New: Replace generated table of contents blocks on rerun using managed HTML comment markers.
+
 ## 0.2.1
 
 - Breaking: renamed the command from `wrap120.reflow` to `markdownReflow.reflow`.
