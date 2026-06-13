@@ -3,9 +3,14 @@
 
 Manual prose reflow for Markdown and MDX in VS Code.
 
-This extension adds a single command, `Markdown Reflow: Reflow Prose`, that wraps plain prose
-paragraphs to a configurable line length. It does not split words and intentionally avoids
-rewriting protected Markdown and MDX structures.
+This extension adds commands for reflowing Markdown prose and generating a table of contents
+from Markdown headings.
+
+## Commands
+
+- `Markdown Reflow: Reflow Prose` wraps plain prose paragraphs to a configurable line length.
+- `Markdown Reflow: Generate Table of Contents` inserts an anchor-linked table of contents near
+  the top of the current document.
 
 ## Behavior
 
@@ -14,6 +19,11 @@ rewriting protected Markdown and MDX structures.
 - Reflows the full document when there is no selection.
 - Wraps prose to `100` columns by default, or to the user-defined
   `markdownReflow.maxLineLength` value when set.
+- Generates a table of contents from ATX headings (`#` through `######`) outside fenced code
+  blocks and frontmatter.
+- Inserts the table of contents after frontmatter when frontmatter exists.
+- Replaces a previously generated table of contents between
+  `<!-- markdown-reflow-toc:start -->` and `<!-- markdown-reflow-toc:end -->`.
 - Leaves these regions unchanged:
   - fenced code blocks
   - indented code blocks

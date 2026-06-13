@@ -2,7 +2,7 @@
   "name": "markdown-reflow",
   "displayName": "Markdown Reflow",
   "description": "Manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "publisher": "rushinglabs",
   "license": "MIT",
   "icon": "icon.png",
@@ -21,7 +21,8 @@
     "formatting"
   ],
   "activationEvents": [
-    "onCommand:markdownReflow.reflow"
+    "onCommand:markdownReflow.reflow",
+    "onCommand:markdownReflow.generateToc"
   ],
   "main": "./out/extension.js",
   "files": [
@@ -38,12 +39,20 @@
       {
         "command": "markdownReflow.reflow",
         "title": "Markdown Reflow: Reflow Prose"
+      },
+      {
+        "command": "markdownReflow.generateToc",
+        "title": "Markdown Reflow: Generate Table of Contents"
       }
     ],
     "menus": {
       "commandPalette": [
         {
           "command": "markdownReflow.reflow",
+          "when": "editorLangId == markdown || editorLangId == mdx"
+        },
+        {
+          "command": "markdownReflow.generateToc",
           "when": "editorLangId == markdown || editorLangId == mdx"
         }
       ],
@@ -52,11 +61,21 @@
           "command": "markdownReflow.reflow",
           "when": "editorLangId == markdown || editorLangId == mdx",
           "group": "navigation"
+        },
+        {
+          "command": "markdownReflow.generateToc",
+          "when": "editorLangId == markdown || editorLangId == mdx",
+          "group": "navigation"
         }
       ],
       "editor/context": [
         {
           "command": "markdownReflow.reflow",
+          "when": "editorLangId == markdown || editorLangId == mdx",
+          "group": "1_modification"
+        },
+        {
+          "command": "markdownReflow.generateToc",
           "when": "editorLangId == markdown || editorLangId == mdx",
           "group": "1_modification"
         }
