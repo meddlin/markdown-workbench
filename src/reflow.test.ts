@@ -97,6 +97,26 @@ describe('reflowMarkdownLike', () => {
     expect(maxLineLength(extractParagraph(output, 'This is a very long paragraph'))).toBeLessThanOrEqual(48)
   })
 
+  it('protects untyped fenced code blocks', () => {
+    let codeLine = 'this code line should stay exactly as written even though it is much wider than the configured line length'
+    let input = [
+      '```',
+      codeLine,
+      '```',
+      '',
+      'This prose paragraph should still wrap after the fenced block because it is outside protected markdown.',
+      '',
+    ].join('\n')
+
+    let output = reflowMarkdownLike(input, {
+      maxLineLength: 44,
+      preserveListItems: true,
+    })
+
+    expect(output).toContain(`\`\`\`\n${codeLine}\n\`\`\``)
+    expect(maxLineLength(extractParagraph(output, 'This prose paragraph'))).toBeLessThanOrEqual(44)
+  })
+
   it('leaves jsx blocks unchanged', () => {
     let input = [
       '<Callout tone="warning">',
