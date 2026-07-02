@@ -159,7 +159,8 @@
     "watch": "tsc -w -p ./tsconfig.json",
     "test": "vitest run --config ./vitest.config.ts",
     "vscode:prepublish": "npm run build",
-    "package": "vsce package"
+    "package": "vsce package",
+    "deploy": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",
