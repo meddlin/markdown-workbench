@@ -229,10 +229,15 @@ function isFenceStart(line: string): boolean {
 }
 
 function isFenceClose(line: string, fenceChar: string, fenceLength: number): boolean {
-  let pattern = new RegExp(`^\\s*${escapeForRegExp(fenceChar)}{${fenceLength},}\\s*$`)
-  return pattern.test(line)
-}
+  if ((fenceChar !== '`' && fenceChar !== '~') || fenceLength < 3) {
+    return false
+  }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  let trimmed = line.trim()
+
+  if (trimmed.length < fenceLength) {
+    return false
+  }
+
+  return [...trimmed].every((char) => char === fenceChar)
 }
