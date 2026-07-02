@@ -2,7 +2,7 @@
   "name": "markdown-reflow",
   "displayName": "Markdown Reflow",
   "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "rushinglabs",
   "repository": {
     "type": "git",
@@ -159,13 +159,14 @@
     "watch": "tsc -w -p ./tsconfig.json",
     "test": "vitest run --config ./vitest.config.ts",
     "vscode:prepublish": "npm run build",
-    "package": "vsce package"
+    "package": "vsce package",
+    "deploy": "vsce publish"
   },
   "devDependencies": {
-    "@types/node": "^24.1.0",
-    "@types/vscode": "^1.90.0",
-    "@vscode/vsce": "^3.2.2",
+    "@types/node": "^25.9.3",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "^3.9.2",
     "typescript": "^5.8.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.9"
   }
 }
