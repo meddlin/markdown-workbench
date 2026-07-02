@@ -17,8 +17,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
       - name: Install OpenGrep
-        run: curl -fsSL https://raw.githubusercontent.com/opengrep/opengrep/main/install.sh | bash -s -- -v v1.22.0
+        env:
+          OPENGREP_VERSION: v1.22.0
+          OPENGREP_ASSET: opengrep_manylinux_x86
+          OPENGREP_SHA256: 45bcd58440e397ed52c50e953ccf5948909ea77087c9186fc7d277216f62e319
+        run: |
+          set -euo pipefail
+
+          install_dir="${HOME}/.opengrep/cli/${OPENGREP_VERSION}"
+          latest_dir="${HOME}/.opengrep/cli/latest"
+          download_url="https://github.com/opengrep/opengrep/releases/download/${OPENGREP_VERSION}/${OPENGREP_ASSET}"
+
+          mkdir -p "${install_dir}"
+          curl -fsSL -o "${install_dir}/opengrep" "${download_url}"
+          curl -fsSL -o "${install_dir}/opengrep.sig" "${download_url}.sig"
+          curl -fsSL -o "${install_dir}/opengrep.cert" "${download_url}.cert"
+
+          echo "${OPENGREP_SHA256}  ${install_dir}/opengrep" | sha256sum --check --strict
+          cosign verify-blob \
+            --cert "${install_dir}/opengrep.cert" \
+            --signature "${install_dir}/opengrep.sig" \
+            --certificate-identity-regexp "https://github.com/opengrep/opengrep.+" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "${install_dir}/opengrep"
+
+          chmod a+x "${install_dir}/opengrep"
+          rm -f "${latest_dir}"
+          ln -s "${install_dir}" "${latest_dir}"
+          "${latest_dir}/opengrep" --version
 
       - name: Run OpenGrep
         run: ~/.opengrep/cli/latest/opengrep scan --config auto --sarif-output opengrep.sarif --error .
