@@ -80,16 +80,23 @@ jobs:
           fs.writeFileSync('coverage-comment.json', `${JSON.stringify({ body })}\n`)
           NODE
 
-          comment_id="$(
+          if ! comment_id="$(
             gh api "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
               --jq '.[] | select(.body | contains("<!-- markdown-reflow-coverage-report -->")) | .id' \
               | head -n 1
-          )"
+          )"; then
+            echo "::warning::Skipping coverage comment because the workflow token cannot read PR comments."
+            exit 0
+          fi
 
           if [ -n "$comment_id" ]; then
-            gh api --method PATCH "repos/$REPOSITORY/issues/comments/$comment_id" --input coverage-comment.json
+            if ! gh api --method PATCH "repos/$REPOSITORY/issues/comments/$comment_id" --input coverage-comment.json; then
+              echo "::warning::Skipping coverage comment update because the workflow token cannot write PR comments."
+            fi
           else
-            gh api --method POST "repos/$REPOSITORY/issues/$PR_NUMBER/comments" --input coverage-comment.json
+            if ! gh api --method POST "repos/$REPOSITORY/issues/$PR_NUMBER/comments" --input coverage-comment.json; then
+              echo "::warning::Skipping coverage comment because the workflow token cannot write PR comments."
+            fi
           fi
 
       - name: Fail when tests or coverage fail
