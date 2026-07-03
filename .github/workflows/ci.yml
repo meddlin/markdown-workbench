@@ -30,8 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+        # Runs unit tests and a coverage report
+      - name: Run tests with coverage
+        run: npm run test:coverage
 
       - name: Build extension
         run: npm run build
@@ -39,8 +40,8 @@ jobs:
       - name: Package extension
         run: npm run package
 
-    # NOTE: Uploads the VSIX artifact to allow for manual testing before 
-    # cutting a new release
+      # NOTE: Uploads the VSIX artifact to allow for manual testing before
+      # cutting a new release
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
