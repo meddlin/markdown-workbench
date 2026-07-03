@@ -83,6 +83,22 @@ describe('insertMarkdownTableOfContents', () => {
     ].join('\n'))
   })
 
+  it('ignores heading-looking lines inside frontmatter', () => {
+    let input = [
+      '---',
+      'title: # Not a document heading',
+      '---',
+      '',
+      '# Real heading',
+      '',
+    ].join('\n')
+
+    let output = insertMarkdownTableOfContents(input)
+
+    expect(output).toContain('- [Real heading](#real-heading)')
+    expect(output).not.toContain('not-a-document-heading')
+  })
+
   it('replaces an existing managed table of contents', () => {
     let input = [
       '<!-- markdown-reflow-toc:start -->',
@@ -103,6 +119,43 @@ describe('insertMarkdownTableOfContents', () => {
       '# New',
       '',
     ].join('\n'))
+  })
+
+  it('replaces an existing managed table of contents surrounded by other content', () => {
+    let input = [
+      'Intro text stays in the document.',
+      '',
+      '<!-- markdown-reflow-toc:start -->',
+      '- [Old](#old)',
+      '<!-- markdown-reflow-toc:end -->',
+      '',
+      '# New',
+      '',
+      'Closing text stays in the document.',
+      '',
+    ].join('\n')
+
+    let output = insertMarkdownTableOfContents(input)
+
+    expect(output).toContain('- [New](#new)')
+    expect(output).not.toContain('- [Old](#old)')
+    expect(output).toContain('Intro text stays in the document.')
+    expect(output).toContain('Closing text stays in the document.')
+  })
+
+  it('does not duplicate a managed table of contents on repeated runs', () => {
+    let input = [
+      '# Heading',
+      '',
+      'Text',
+      '',
+    ].join('\n')
+
+    let once = insertMarkdownTableOfContents(input)
+    let twice = insertMarkdownTableOfContents(once)
+
+    expect(twice).toBe(once)
+    expect(twice.match(/markdown-reflow-toc:start/g)).toHaveLength(1)
   })
 
   it('ignores headings inside fences and the managed table of contents', () => {
@@ -152,5 +205,23 @@ describe('slugifyHeading', () => {
     expect(slugifyHeading('Use `code`, *emphasis*, and links!')).toBe(
       'use-code-emphasis-and-links',
     )
+  })
+
+  it('normalizes inline link markup, html tags, punctuation, and duplicate slugs', () => {
+    expect(slugifyHeading('Read [Docs](https://example.com), then <Code>Ship</Code>!')).toBe(
+      'read-docshttpsexamplecom-then-ship',
+    )
+
+    expect(
+      buildTableOfContentsLines([
+        { level: 2, text: 'Read [Docs](https://example.com), then <Code>Ship</Code>!' },
+        { level: 2, text: 'Read Docshttps://example.com then Ship' },
+      ]),
+    ).toEqual([
+      '<!-- markdown-reflow-toc:start -->',
+      '  - [Read \\[Docs\\](https://example.com), then <Code>Ship</Code>!](#read-docshttpsexamplecom-then-ship)',
+      '  - [Read Docshttps://example.com then Ship](#read-docshttpsexamplecom-then-ship-1)',
+      '<!-- markdown-reflow-toc:end -->',
+    ])
   })
 })

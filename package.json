@@ -158,6 +158,8 @@
     "build": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\" && tsc -p ./tsconfig.json",
     "watch": "tsc -w -p ./tsconfig.json",
     "test": "vitest run --config ./vitest.config.ts",
+    "test:watch": "vitest --config ./vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config ./vitest.config.ts",
     "vscode:prepublish": "npm run build",
     "package": "vsce package",
     "deploy": "vsce publish"
@@ -165,6 +167,7 @@
   "devDependencies": {
     "@types/node": "^25.9.3",
     "@types/vscode": "1.90.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "@vscode/vsce": "^3.9.2",
     "typescript": "^5.8.3",
     "vitest": "^4.1.9"
