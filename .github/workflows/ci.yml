@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: read
 
 jobs:
   build-and-test:
@@ -30,9 +32,69 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-        # Runs unit tests and a coverage report
       - name: Run tests with coverage
+        id: coverage
+        continue-on-error: true
         run: npm run test:coverage
+
+      - name: Comment coverage report on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && always()
+        env:
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+
+          const marker = '<!-- markdown-reflow-coverage-report -->'
+          const summaryPath = 'coverage/coverage-summary.json'
+          const outcome = process.env.COVERAGE_OUTCOME
+          const runUrl = process.env.RUN_URL
+          const status = outcome === 'success' ? 'passed' : 'failed'
+
+          let body = `${marker}\n## Unit Test Coverage\n\n`
+          body += `Coverage run ${status}. [View workflow run](${runUrl}).\n`
+
+          if (fs.existsSync(summaryPath)) {
+            const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8')).total
+            const metrics = [
+              ['Statements', summary.statements],
+              ['Branches', summary.branches],
+              ['Functions', summary.functions],
+              ['Lines', summary.lines],
+            ]
+
+            body += '\n| Metric | Covered | Total | Percent |\n'
+            body += '| --- | ---: | ---: | ---: |\n'
+
+            for (const [label, metric] of metrics) {
+              body += `| ${label} | ${metric.covered} | ${metric.total} | ${metric.pct.toFixed(2)}% |\n`
+            }
+          } else {
+            body += '\nCoverage summary was not generated. Check the workflow logs for the unit test or coverage failure.\n'
+          }
+
+          fs.writeFileSync('coverage-comment.json', `${JSON.stringify({ body })}\n`)
+          NODE
+
+          comment_id="$(
+            gh api "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
+              --jq '.[] | select(.body | contains("<!-- markdown-reflow-coverage-report -->")) | .id' \
+              | head -n 1
+          )"
+
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/$REPOSITORY/issues/comments/$comment_id" --input coverage-comment.json
+          else
+            gh api --method POST "repos/$REPOSITORY/issues/$PR_NUMBER/comments" --input coverage-comment.json
+          fi
+
+      - name: Fail when tests or coverage fail
+        if: steps.coverage.outcome != 'success'
+        run: exit 1
 
       - name: Build extension
         run: npm run build
