@@ -37,3 +37,37 @@ npx @vscode/vsce publish
 ```
 
 Or upload the generated `.vsix` manually in the Marketplace publisher portal.
+
+## Release Flow
+
+This is the process to follow when publishing a new release.
+
+```bash
+# Do work
+
+# Move back to main
+git checkout main
+git pull origin main
+
+# Bump package.json to next version
+npm version patch
+
+# Push commit and tag
+git push origin main --follow-tags
+```
+
+For minor or major version bumps. Do the following:
+
+Minor
+
+```bash
+npm version minor
+git push origin main --follow-tags
+```
+
+Major
+
+```bash
+npm version major
+git push origin main --follow-tags
+```

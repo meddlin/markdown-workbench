@@ -148,10 +148,6 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
         inFence = true
         fenceChar = match[1][0]
         fenceLength = match[1].length
-
-        if (isFenceClose(line, fenceChar, fenceLength) && trimmed === match[1]) {
-          inFence = false
-        }
       }
 
       continue
@@ -253,8 +249,17 @@ function isFenceStart(line: string): boolean {
 }
 
 function isFenceClose(line: string, fenceChar: string, fenceLength: number): boolean {
-  let pattern = new RegExp(`^\\s*${escapeForRegExp(fenceChar)}{${fenceLength},}\\s*$`)
-  return pattern.test(line)
+  if ((fenceChar !== '`' && fenceChar !== '~') || fenceLength < 3) {
+    return false
+  }
+
+  let trimmed = line.trim()
+
+  if (trimmed.length < fenceLength) {
+    return false
+  }
+
+  return [...trimmed].every((char) => char === fenceChar)
 }
 
 function isIndentedCode(line: string): boolean {
@@ -388,8 +393,4 @@ function getBraceDepthDelta(line: string): number {
   }
 
   return depth
-}
-
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
