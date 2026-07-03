@@ -111,7 +111,7 @@ describe('insertMarkdownTableOfContents', () => {
       '- [Old](#old)',
       '<!-- markdown-reflow-toc:end -->',
       '',
-      '```md',
+      '```',
       '# Not a real heading',
       '```',
       '',
