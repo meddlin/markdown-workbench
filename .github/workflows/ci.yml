@@ -50,7 +50,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs')
 
-          const marker = '<!-- markdown-reflow-coverage-report -->'
+          const marker = '<!-- markdown-workbench-coverage-report -->'
           const summaryPath = 'coverage/coverage-summary.json'
           const outcome = process.env.COVERAGE_OUTCOME
           const runUrl = process.env.RUN_URL
@@ -83,7 +83,7 @@ jobs:
 
           if ! comment_id="$(
             gh api "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
-              --jq '.[] | select(.body | contains("<!-- markdown-reflow-coverage-report -->")) | .id' \
+              --jq '.[] | select(.body | contains("<!-- markdown-workbench-coverage-report -->")) | .id' \
               | head -n 1
           )"; then
             echo "::warning::Skipping coverage comment because the workflow token cannot read PR comments."
@@ -115,5 +115,5 @@ jobs:
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: markdown-reflow-vsix
+          name: markdown-workbench-vsix
           path: "*.vsix"
