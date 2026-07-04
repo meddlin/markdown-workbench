@@ -1,6 +1,6 @@
 {
-  "name": "markdown-reflow",
-  "displayName": "Markdown Reflow",
+  "name": "markdown-workbench",
+  "displayName": "Markdown Workbench",
   "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
   "version": "0.5.2",
   "publisher": "rushinglabs",
@@ -31,11 +31,11 @@
   "activationEvents": [
     "onLanguage:markdown",
     "onLanguage:mdx",
-    "onCommand:markdownReflow.setMaxLineLength",
-    "onCommand:markdownReflow.toggleMaxLineLengthIndicator",
-    "onCommand:markdownReflow.setMaxLineLengthIndicatorColor",
-    "onCommand:markdownReflow.reflow",
-    "onCommand:markdownReflow.generateToc"
+    "onCommand:markdownWorkbench.setMaxLineLength",
+    "onCommand:markdownWorkbench.toggleMaxLineLengthIndicator",
+    "onCommand:markdownWorkbench.setMaxLineLengthIndicatorColor",
+    "onCommand:markdownWorkbench.reflow",
+    "onCommand:markdownWorkbench.generateToc"
   ],
   "main": "./out/extension.js",
   "files": [
@@ -50,87 +50,87 @@
   "contributes": {
     "commands": [
       {
-        "command": "markdownReflow.reflow",
-        "title": "Markdown Reflow: Reflow Prose"
+        "command": "markdownWorkbench.reflow",
+        "title": "Markdown Workbench: Reflow Prose"
       },
       {
-        "command": "markdownReflow.setMaxLineLength",
-        "title": "Markdown Reflow: Set Maximum Line Length"
+        "command": "markdownWorkbench.setMaxLineLength",
+        "title": "Markdown Workbench: Set Maximum Line Length"
       },
       {
-        "command": "markdownReflow.toggleMaxLineLengthIndicator",
-        "title": "Markdown Reflow: Toggle Maximum Line Length Indicator"
+        "command": "markdownWorkbench.toggleMaxLineLengthIndicator",
+        "title": "Markdown Workbench: Toggle Maximum Line Length Indicator"
       },
       {
-        "command": "markdownReflow.setMaxLineLengthIndicatorColor",
-        "title": "Markdown Reflow: Set Maximum Line Length Indicator Color"
+        "command": "markdownWorkbench.setMaxLineLengthIndicatorColor",
+        "title": "Markdown Workbench: Set Maximum Line Length Indicator Color"
       },
       {
-        "command": "markdownReflow.generateToc",
-        "title": "Markdown Reflow: Generate Table of Contents"
+        "command": "markdownWorkbench.generateToc",
+        "title": "Markdown Workbench: Generate Table of Contents"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "markdownReflow.reflow",
+          "command": "markdownWorkbench.reflow",
           "when": "editorLangId == markdown || editorLangId == mdx"
         },
         {
-          "command": "markdownReflow.setMaxLineLength",
+          "command": "markdownWorkbench.setMaxLineLength",
           "when": "editorLangId == markdown || editorLangId == mdx"
         },
         {
-          "command": "markdownReflow.toggleMaxLineLengthIndicator",
+          "command": "markdownWorkbench.toggleMaxLineLengthIndicator",
           "when": "editorLangId == markdown || editorLangId == mdx"
         },
         {
-          "command": "markdownReflow.setMaxLineLengthIndicatorColor",
+          "command": "markdownWorkbench.setMaxLineLengthIndicatorColor",
           "when": "editorLangId == markdown || editorLangId == mdx"
         },
         {
-          "command": "markdownReflow.generateToc",
+          "command": "markdownWorkbench.generateToc",
           "when": "editorLangId == markdown || editorLangId == mdx"
         }
       ],
       "editor/context": [
         {
-          "command": "markdownReflow.reflow",
+          "command": "markdownWorkbench.reflow",
           "when": "editorLangId == markdown || editorLangId == mdx",
           "group": "1_modification"
         },
         {
-          "command": "markdownReflow.generateToc",
+          "command": "markdownWorkbench.generateToc",
           "when": "editorLangId == markdown || editorLangId == mdx",
           "group": "1_modification"
         }
       ]
     },
     "configuration": {
-      "title": "Markdown Reflow",
+      "title": "Markdown Workbench",
       "properties": {
-        "markdownReflow.maxLineLength": {
+        "markdownWorkbench.maxLineLength": {
           "type": "number",
           "default": 100,
           "minimum": 20,
           "description": "Maximum line length for wrapped prose."
         },
-        "markdownReflow.automaticReflow": {
+        "markdownWorkbench.automaticReflow": {
           "type": "boolean",
           "default": true,
           "description": "When enabled, automatically reflow prose while typing after edited lines exceed the maximum line length."
         },
-        "markdownReflow.showMaxLineLengthIndicator": {
+        "markdownWorkbench.showMaxLineLengthIndicator": {
           "type": "boolean",
           "default": true,
-          "description": "When enabled, show an editor ruler at the configured maximum line length for Markdown Reflow languages."
+          "description": "When enabled, show an editor ruler at the configured maximum line length for Markdown Workbench languages."
         },
-        "markdownReflow.maxLineLengthIndicatorColor": {
+        "markdownWorkbench.maxLineLengthIndicatorColor": {
           "type": "string",
           "default": "light gray",
           "description": "Color for the maximum line length indicator. Use a supported common name such as light gray, blue, or red, or a hex color such as #888888."
         },
-        "markdownReflow.languages": {
+        "markdownWorkbench.languages": {
           "type": "array",
           "default": [
             "markdown",
@@ -141,12 +141,12 @@
           },
           "description": "Language IDs this command is allowed to edit."
         },
-        "markdownReflow.preserveListItems": {
+        "markdownWorkbench.preserveListItems": {
           "type": "boolean",
           "default": true,
           "description": "When enabled, leave Markdown list items and their continuation blocks unchanged."
         },
-        "markdownReflow.selectionOnlyWhenSelected": {
+        "markdownWorkbench.selectionOnlyWhenSelected": {
           "type": "boolean",
           "default": true,
           "description": "When enabled, only reflow paragraphs intersecting the current selection."
