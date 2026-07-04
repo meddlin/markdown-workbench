@@ -6,11 +6,11 @@
   "publisher": "rushinglabs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/meddlin/markdown-reflow.git"
+    "url": "https://github.com/meddlin/markdown-workbench.git"
   },
-  "homepage": "https://github.com/meddlin/markdown-reflow#readme",
+  "homepage": "https://github.com/meddlin/markdown-workbench#readme",
   "bugs": {
-    "url": "https://github.com/meddlin/markdown-reflow/issues"
+    "url": "https://github.com/meddlin/markdown-workbench/issues"
   },
   "license": "MIT",
   "icon": "icon.png",
