@@ -36,8 +36,9 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
 - Generates a table of contents from ATX headings (`#` through `######`) outside fenced code
   blocks and frontmatter.
 - Inserts the table of contents after frontmatter when frontmatter exists.
-- Replaces a previously generated table of contents between
-  `<!-- markdown-reflow-toc:start -->` and `<!-- markdown-reflow-toc:end -->`.
+- Replaces a previously generated table of contents between managed markers:
+  `<!-- markdown-reflow-toc:start -->` and `<!-- markdown-reflow-toc:end -->` for Markdown,
+  or `{/* markdown-reflow-toc:start */}` and `{/* markdown-reflow-toc:end */}` for MDX.
 - Leaves these regions unchanged:
   - fenced code blocks
   - indented code blocks

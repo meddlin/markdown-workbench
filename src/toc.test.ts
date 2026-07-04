@@ -39,6 +39,8 @@ describe('insertMarkdownTableOfContents', () => {
       '# Another heading',
       '',
     ].join('\n'))
+    expect(output).not.toContain('{/* markdown-reflow-toc:start */}')
+    expect(output).not.toContain('{/* markdown-reflow-toc:end */}')
   })
 
   it('generates duplicate heading suffixes', () => {
@@ -55,6 +57,22 @@ describe('insertMarkdownTableOfContents', () => {
       '  - [Install!](#install-2)',
       '<!-- markdown-reflow-toc:end -->',
     ])
+    expect(tocLines).not.toContain('{/* markdown-reflow-toc:start */}')
+    expect(tocLines).not.toContain('{/* markdown-reflow-toc:end */}')
+  })
+
+  it('generates mdx comment markers when requested', () => {
+    let tocLines = buildTableOfContentsLines([
+      { level: 1, text: 'Install' },
+    ], 'mdx')
+
+    expect(tocLines).toEqual([
+      '{/* markdown-reflow-toc:start */}',
+      '- [Install](#install)',
+      '{/* markdown-reflow-toc:end */}',
+    ])
+    expect(tocLines).not.toContain('<!-- markdown-reflow-toc:start -->')
+    expect(tocLines).not.toContain('<!-- markdown-reflow-toc:end -->')
   })
 
   it('inserts after frontmatter', () => {
@@ -177,6 +195,74 @@ describe('insertMarkdownTableOfContents', () => {
     expect(output).toContain('- [Real heading](#real-heading)')
     expect(output).not.toContain('not-a-real-heading')
     expect(output).not.toContain('- [Old](#old)')
+  })
+
+  it('inserts an mdx-safe table of contents when requested', () => {
+    let input = [
+      '# Heading',
+      '',
+      'Text',
+      '',
+    ].join('\n')
+
+    let output = insertMarkdownTableOfContents(input, 'mdx')
+
+    expect(output).toBe([
+      '{/* markdown-reflow-toc:start */}',
+      '- [Heading](#heading)',
+      '{/* markdown-reflow-toc:end */}',
+      '',
+      '# Heading',
+      '',
+      'Text',
+      '',
+    ].join('\n'))
+    expect(output).not.toContain('<!-- markdown-reflow-toc:start -->')
+    expect(output).not.toContain('<!-- markdown-reflow-toc:end -->')
+  })
+
+  it('replaces an existing managed mdx table of contents', () => {
+    let input = [
+      '{/* markdown-reflow-toc:start */}',
+      '- [Old](#old)',
+      '{/* markdown-reflow-toc:end */}',
+      '',
+      '# New',
+      '',
+    ].join('\n')
+
+    let output = insertMarkdownTableOfContents(input, 'mdx')
+
+    expect(output).toBe([
+      '{/* markdown-reflow-toc:start */}',
+      '- [New](#new)',
+      '{/* markdown-reflow-toc:end */}',
+      '',
+      '# New',
+      '',
+    ].join('\n'))
+  })
+
+  it('migrates an existing html-marker table of contents to mdx markers', () => {
+    let input = [
+      '<!-- markdown-reflow-toc:start -->',
+      '- [Old](#old)',
+      '<!-- markdown-reflow-toc:end -->',
+      '',
+      '# New',
+      '',
+    ].join('\n')
+
+    let output = insertMarkdownTableOfContents(input, 'mdx')
+
+    expect(output).toBe([
+      '{/* markdown-reflow-toc:start */}',
+      '- [New](#new)',
+      '{/* markdown-reflow-toc:end */}',
+      '',
+      '# New',
+      '',
+    ].join('\n'))
   })
 
   it('preserves crlf line endings and trailing newline behavior', () => {

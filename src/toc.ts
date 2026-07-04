@@ -1,5 +1,9 @@
 export const tocStartMarker = '<!-- markdown-reflow-toc:start -->'
 export const tocEndMarker = '<!-- markdown-reflow-toc:end -->'
+export const mdxTocStartMarker = '{/* markdown-reflow-toc:start */}'
+export const mdxTocEndMarker = '{/* markdown-reflow-toc:end */}'
+
+export type TocMarkerStyle = 'markdown' | 'mdx'
 
 interface Heading {
   level: number
@@ -11,7 +15,15 @@ interface ManagedTocRange {
   endLine: number
 }
 
-export function insertMarkdownTableOfContents(text: string): string {
+interface TocMarkers {
+  start: string
+  end: string
+}
+
+export function insertMarkdownTableOfContents(
+  text: string,
+  markerStyle: TocMarkerStyle = 'markdown',
+): string {
   let eol = text.includes('\r\n') ? '\r\n' : '\n'
   let hasTrailingEol = text.endsWith('\n')
   let lines = text.split(/\r?\n/)
@@ -30,7 +42,7 @@ export function insertMarkdownTableOfContents(text: string): string {
     return text
   }
 
-  let tocLines = buildTableOfContentsLines(headings)
+  let tocLines = buildTableOfContentsLines(headings, markerStyle)
   let insertLine = findTocInsertLine(linesWithoutToc)
   let nextLines = [
     ...linesWithoutToc.slice(0, insertLine),
@@ -48,11 +60,15 @@ export function insertMarkdownTableOfContents(text: string): string {
   return result
 }
 
-export function buildTableOfContentsLines(headings: Heading[]): string[] {
+export function buildTableOfContentsLines(
+  headings: Heading[],
+  markerStyle: TocMarkerStyle = 'markdown',
+): string[] {
+  let markers = getTocMarkers(markerStyle)
   let slugCounts = new Map<string, number>()
 
   return [
-    tocStartMarker,
+    markers.start,
     ...headings.map((heading) => {
       let baseSlug = slugifyHeading(heading.text)
       let seenCount = slugCounts.get(baseSlug) ?? 0
@@ -63,7 +79,7 @@ export function buildTableOfContentsLines(headings: Heading[]): string[] {
 
       return `${indent}- [${escapeLinkText(heading.text)}](#${slug})`
     }),
-    tocEndMarker,
+    markers.end,
   ]
 }
 
@@ -80,13 +96,13 @@ export function extractMarkdownHeadings(lines: string[]): Heading[] {
     let line = lines[index]
     let trimmed = line.trim()
 
-    if (trimmed === tocStartMarker) {
+    if (isTocStartMarker(trimmed)) {
       inManagedToc = true
       continue
     }
 
     if (inManagedToc) {
-      if (trimmed === tocEndMarker) {
+      if (isTocEndMarker(trimmed)) {
         inManagedToc = false
       }
       continue
@@ -167,14 +183,14 @@ function parseHeading(trimmedLine: string): Heading | undefined {
 }
 
 function findManagedTocRange(lines: string[]): ManagedTocRange | undefined {
-  let startLine = lines.findIndex((line) => line.trim() === tocStartMarker)
+  let startLine = lines.findIndex((line) => isTocStartMarker(line.trim()))
 
   if (startLine < 0) {
     return undefined
   }
 
   let endLine = lines.findIndex(
-    (line, index) => index > startLine && line.trim() === tocEndMarker,
+    (line, index) => index > startLine && isTocEndMarker(line.trim()),
   )
 
   if (endLine < 0) {
@@ -222,6 +238,20 @@ function escapeLinkText(text: string): string {
 
 function isFrontmatterStart(trimmedLine: string): boolean {
   return trimmedLine === '---' || trimmedLine === '+++'
+}
+
+function getTocMarkers(markerStyle: TocMarkerStyle): TocMarkers {
+  return markerStyle === 'mdx'
+    ? { start: mdxTocStartMarker, end: mdxTocEndMarker }
+    : { start: tocStartMarker, end: tocEndMarker }
+}
+
+function isTocStartMarker(trimmedLine: string): boolean {
+  return trimmedLine === tocStartMarker || trimmedLine === mdxTocStartMarker
+}
+
+function isTocEndMarker(trimmedLine: string): boolean {
+  return trimmedLine === tocEndMarker || trimmedLine === mdxTocEndMarker
 }
 
 function isFenceStart(line: string): boolean {

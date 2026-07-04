@@ -91,7 +91,47 @@ describe('extension activation and commands', () => {
     await runCommand('markdownReflow.generateToc')
 
     expect(editor.edit).toHaveBeenCalledOnce()
+    expect(editor.document.getText()).toContain('<!-- markdown-reflow-toc:start -->')
     expect(editor.document.getText()).toContain('- [Heading](#heading)')
+    expect(editor.document.getText()).toContain('<!-- markdown-reflow-toc:end -->')
+    expect(editor.document.getText()).not.toContain('{/* markdown-reflow-toc:start */}')
+    expect(editor.document.getText()).not.toContain('{/* markdown-reflow-toc:end */}')
+  })
+
+  it('generates an mdx-safe table of contents for mdx documents', async () => {
+    await activateExtension()
+    let editor = createTextEditor({
+      languageId: 'mdx',
+      text: ['# Heading', '', 'Text', ''].join('\n'),
+    })
+    setActiveTextEditor(editor)
+
+    await runCommand('markdownReflow.generateToc')
+
+    expect(editor.edit).toHaveBeenCalledOnce()
+    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:start */}')
+    expect(editor.document.getText()).toContain('- [Heading](#heading)')
+    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:end */}')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:start -->')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:end -->')
+  })
+
+  it('generates an mdx-safe table of contents for mdx file uris', async () => {
+    await activateExtension()
+    let editor = createTextEditor({
+      languageId: 'markdown',
+      uri: 'file:///workspace/test.mdx',
+      text: ['# Heading', '', 'Text', ''].join('\n'),
+    })
+    setActiveTextEditor(editor)
+
+    await runCommand('markdownReflow.generateToc')
+
+    expect(editor.edit).toHaveBeenCalledOnce()
+    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:start */}')
+    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:end */}')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:start -->')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:end -->')
   })
 
   it('does not edit when the table of contents is already current', async () => {
