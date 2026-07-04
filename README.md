@@ -1,4 +1,4 @@
-# Markdown Reflow <img width="256" height="256" alt="Markdown reflow extension logo design" src="https://github.com/user-attachments/assets/73a67431-92f4-4d5d-afda-ecd915f90240" />
+# Markdown Workbench <img width="256" height="256" alt="Markdown Workbench extension logo design" src="https://github.com/user-attachments/assets/73a67431-92f4-4d5d-afda-ecd915f90240" />
 
 
 Automatic and manual prose reflow for Markdown and MDX in VS Code.
@@ -8,37 +8,37 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
 
 ## Commands
 
-- `Markdown Reflow: Reflow Prose` wraps plain prose paragraphs to a configurable line length.
-- `Markdown Reflow: Set Maximum Line Length` updates the configured prose line length.
-- `Markdown Reflow: Toggle Maximum Line Length Indicator` shows or hides the editor ruler at
+- `Markdown Workbench: Reflow Prose` wraps plain prose paragraphs to a configurable line length.
+- `Markdown Workbench: Set Maximum Line Length` updates the configured prose line length.
+- `Markdown Workbench: Toggle Maximum Line Length Indicator` shows or hides the editor ruler at
   the configured prose line length.
-- `Markdown Reflow: Set Maximum Line Length Indicator Color` updates the editor ruler color
+- `Markdown Workbench: Set Maximum Line Length Indicator Color` updates the editor ruler color
   using a common color name or custom hex color.
-- `Markdown Reflow: Generate Table of Contents` inserts an anchor-linked table of contents near
+- `Markdown Workbench: Generate Table of Contents` inserts an anchor-linked table of contents near
   the top of the current document.
 
 ## Behavior
 
 - Reflows the current selection when a selection exists and
-  `markdownReflow.selectionOnlyWhenSelected` is enabled.
+  `markdownWorkbench.selectionOnlyWhenSelected` is enabled.
 - Reflows the full document when there is no selection.
 - Automatically reflows the current paragraph while typing when an edited line exceeds
-  `markdownReflow.maxLineLength`.
+  `markdownWorkbench.maxLineLength`.
 - Wraps prose to `100` columns by default, or to the user-defined
-  `markdownReflow.maxLineLength` value when set.
-- Shows a vertical editor ruler at `markdownReflow.maxLineLength` by default.
-- Updates `markdownReflow.maxLineLength` from the command palette when using
-  `Markdown Reflow: Set Maximum Line Length`.
-- Toggles `markdownReflow.showMaxLineLengthIndicator` from the command palette when using
-  `Markdown Reflow: Toggle Maximum Line Length Indicator`.
-- Updates `markdownReflow.maxLineLengthIndicatorColor` from the command palette when using
-  `Markdown Reflow: Set Maximum Line Length Indicator Color`.
+  `markdownWorkbench.maxLineLength` value when set.
+- Shows a vertical editor ruler at `markdownWorkbench.maxLineLength` by default.
+- Updates `markdownWorkbench.maxLineLength` from the command palette when using
+  `Markdown Workbench: Set Maximum Line Length`.
+- Toggles `markdownWorkbench.showMaxLineLengthIndicator` from the command palette when using
+  `Markdown Workbench: Toggle Maximum Line Length Indicator`.
+- Updates `markdownWorkbench.maxLineLengthIndicatorColor` from the command palette when using
+  `Markdown Workbench: Set Maximum Line Length Indicator Color`.
 - Generates a table of contents from ATX headings (`#` through `######`) outside fenced code
   blocks and frontmatter.
 - Inserts the table of contents after frontmatter when frontmatter exists.
 - Replaces a previously generated table of contents between managed markers:
-  `<!-- markdown-reflow-toc:start -->` and `<!-- markdown-reflow-toc:end -->` for Markdown,
-  or `{/* markdown-reflow-toc:start */}` and `{/* markdown-reflow-toc:end */}` for MDX.
+  `<!-- markdown-workbench-toc:start -->` and `<!-- markdown-workbench-toc:end -->` for Markdown,
+  or `{/* markdown-workbench-toc:start */}` and `{/* markdown-workbench-toc:end */}` for MDX.
 - Leaves these regions unchanged:
   - fenced code blocks
   - indented code blocks
@@ -52,13 +52,13 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
 
 ## Settings
 
-- `markdownReflow.maxLineLength`
-- `markdownReflow.automaticReflow`
-- `markdownReflow.showMaxLineLengthIndicator`
-- `markdownReflow.maxLineLengthIndicatorColor`
-- `markdownReflow.languages`
-- `markdownReflow.preserveListItems`
-- `markdownReflow.selectionOnlyWhenSelected`
+- `markdownWorkbench.maxLineLength`
+- `markdownWorkbench.automaticReflow`
+- `markdownWorkbench.showMaxLineLengthIndicator`
+- `markdownWorkbench.maxLineLengthIndicatorColor`
+- `markdownWorkbench.languages`
+- `markdownWorkbench.preserveListItems`
+- `markdownWorkbench.selectionOnlyWhenSelected`
 
 ## Development
 

@@ -81,7 +81,7 @@ export enum ConfigurationTarget {
 let commandCallbacks = new Map<string, (...args: unknown[]) => unknown>()
 let textDocumentChangeHandlers: Array<(event: unknown) => void> = []
 let configurationChangeHandlers: Array<(event: unknown) => void> = []
-let markdownReflowConfiguration: ConfigurationValues = {}
+let markdownWorkbenchConfiguration: ConfigurationValues = {}
 let editorConfigurations = new Map<string, ConfigurationValues>()
 let configurationUpdates: ConfigurationUpdate[] = []
 let informationMessages: string[] = []
@@ -140,7 +140,7 @@ export function resetVscodeMock(): void {
   commandCallbacks = new Map()
   textDocumentChangeHandlers = []
   configurationChangeHandlers = []
-  markdownReflowConfiguration = {}
+  markdownWorkbenchConfiguration = {}
   editorConfigurations = new Map()
   configurationUpdates = []
   informationMessages = []
@@ -246,8 +246,8 @@ export function setActiveTextEditor(editor: MockTextEditor | undefined): void {
   window.activeTextEditor = editor
 }
 
-export function setMarkdownReflowConfiguration(key: string, value: unknown): void {
-  markdownReflowConfiguration[key] = value
+export function setMarkdownWorkbenchConfiguration(key: string, value: unknown): void {
+  markdownWorkbenchConfiguration[key] = value
 }
 
 export function setEditorConfiguration(languageId: string, key: string, value: unknown): void {
@@ -316,7 +316,7 @@ function createConfiguration(section: string, scope: unknown): {
   let values =
     section === 'editor'
       ? getEditorConfigurationValues(getLanguageId(scope))
-      : markdownReflowConfiguration
+      : markdownWorkbenchConfiguration
 
   return {
     get: <T>(key: string, defaultValue?: T): T => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Breaking: renamed the extension from Markdown Reflow to Markdown Workbench.
+- Breaking: renamed the extension package from `markdown-reflow` to `markdown-workbench`.
+- Breaking: renamed command IDs from `markdownReflow.*` to `markdownWorkbench.*`.
+- Breaking: renamed configuration keys from `markdownReflow.*` to `markdownWorkbench.*`.
+- Breaking: renamed generated table of contents markers from `markdown-reflow-toc` to
+  `markdown-workbench-toc`.
+
 ## 0.4.0
 
 - New: Automatically reflow Markdown/MDX prose while typing when an edited line exceeds the

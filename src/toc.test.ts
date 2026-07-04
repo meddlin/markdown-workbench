@@ -22,13 +22,13 @@ describe('insertMarkdownTableOfContents', () => {
     let output = insertMarkdownTableOfContents(input)
 
     expect(output).toBe([
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Head 1](#head-1)',
       '  - [Sub-head 2](#sub-head-2)',
       '    - [sub-head 3](#sub-head-3)',
       '  - [Sub-head 2a](#sub-head-2a)',
       '- [Another heading](#another-heading)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
       '',
       '# Head 1',
       'some content',
@@ -39,8 +39,8 @@ describe('insertMarkdownTableOfContents', () => {
       '# Another heading',
       '',
     ].join('\n'))
-    expect(output).not.toContain('{/* markdown-reflow-toc:start */}')
-    expect(output).not.toContain('{/* markdown-reflow-toc:end */}')
+    expect(output).not.toContain('{/* markdown-workbench-toc:start */}')
+    expect(output).not.toContain('{/* markdown-workbench-toc:end */}')
   })
 
   it('generates duplicate heading suffixes', () => {
@@ -51,14 +51,14 @@ describe('insertMarkdownTableOfContents', () => {
     ])
 
     expect(tocLines).toEqual([
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Install](#install)',
       '  - [Install](#install-1)',
       '  - [Install!](#install-2)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
     ])
-    expect(tocLines).not.toContain('{/* markdown-reflow-toc:start */}')
-    expect(tocLines).not.toContain('{/* markdown-reflow-toc:end */}')
+    expect(tocLines).not.toContain('{/* markdown-workbench-toc:start */}')
+    expect(tocLines).not.toContain('{/* markdown-workbench-toc:end */}')
   })
 
   it('generates mdx comment markers when requested', () => {
@@ -67,12 +67,12 @@ describe('insertMarkdownTableOfContents', () => {
     ], 'mdx')
 
     expect(tocLines).toEqual([
-      '{/* markdown-reflow-toc:start */}',
+      '{/* markdown-workbench-toc:start */}',
       '- [Install](#install)',
-      '{/* markdown-reflow-toc:end */}',
+      '{/* markdown-workbench-toc:end */}',
     ])
-    expect(tocLines).not.toContain('<!-- markdown-reflow-toc:start -->')
-    expect(tocLines).not.toContain('<!-- markdown-reflow-toc:end -->')
+    expect(tocLines).not.toContain('<!-- markdown-workbench-toc:start -->')
+    expect(tocLines).not.toContain('<!-- markdown-workbench-toc:end -->')
   })
 
   it('inserts after frontmatter', () => {
@@ -92,9 +92,9 @@ describe('insertMarkdownTableOfContents', () => {
       'title: Example',
       '---',
       '',
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Heading](#heading)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
       '',
       '# Heading',
       '',
@@ -119,6 +119,28 @@ describe('insertMarkdownTableOfContents', () => {
 
   it('replaces an existing managed table of contents', () => {
     let input = [
+      '<!-- markdown-workbench-toc:start -->',
+      '- [Old](#old)',
+      '<!-- markdown-workbench-toc:end -->',
+      '',
+      '# New',
+      '',
+    ].join('\n')
+
+    let output = insertMarkdownTableOfContents(input)
+
+    expect(output).toBe([
+      '<!-- markdown-workbench-toc:start -->',
+      '- [New](#new)',
+      '<!-- markdown-workbench-toc:end -->',
+      '',
+      '# New',
+      '',
+    ].join('\n'))
+  })
+
+  it('does not treat legacy markdown-reflow markers as managed table of contents markers', () => {
+    let input = [
       '<!-- markdown-reflow-toc:start -->',
       '- [Old](#old)',
       '<!-- markdown-reflow-toc:end -->',
@@ -130,8 +152,12 @@ describe('insertMarkdownTableOfContents', () => {
     let output = insertMarkdownTableOfContents(input)
 
     expect(output).toBe([
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [New](#new)',
+      '<!-- markdown-workbench-toc:end -->',
+      '',
+      '<!-- markdown-reflow-toc:start -->',
+      '- [Old](#old)',
       '<!-- markdown-reflow-toc:end -->',
       '',
       '# New',
@@ -143,9 +169,9 @@ describe('insertMarkdownTableOfContents', () => {
     let input = [
       'Intro text stays in the document.',
       '',
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Old](#old)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
       '',
       '# New',
       '',
@@ -173,14 +199,14 @@ describe('insertMarkdownTableOfContents', () => {
     let twice = insertMarkdownTableOfContents(once)
 
     expect(twice).toBe(once)
-    expect(twice.match(/markdown-reflow-toc:start/g)).toHaveLength(1)
+    expect(twice.match(/markdown-workbench-toc:start/g)).toHaveLength(1)
   })
 
   it('ignores headings inside fences and the managed table of contents', () => {
     let input = [
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Old](#old)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
       '',
       '```',
       '# Not a real heading',
@@ -208,24 +234,24 @@ describe('insertMarkdownTableOfContents', () => {
     let output = insertMarkdownTableOfContents(input, 'mdx')
 
     expect(output).toBe([
-      '{/* markdown-reflow-toc:start */}',
+      '{/* markdown-workbench-toc:start */}',
       '- [Heading](#heading)',
-      '{/* markdown-reflow-toc:end */}',
+      '{/* markdown-workbench-toc:end */}',
       '',
       '# Heading',
       '',
       'Text',
       '',
     ].join('\n'))
-    expect(output).not.toContain('<!-- markdown-reflow-toc:start -->')
-    expect(output).not.toContain('<!-- markdown-reflow-toc:end -->')
+    expect(output).not.toContain('<!-- markdown-workbench-toc:start -->')
+    expect(output).not.toContain('<!-- markdown-workbench-toc:end -->')
   })
 
   it('replaces an existing managed mdx table of contents', () => {
     let input = [
-      '{/* markdown-reflow-toc:start */}',
+      '{/* markdown-workbench-toc:start */}',
       '- [Old](#old)',
-      '{/* markdown-reflow-toc:end */}',
+      '{/* markdown-workbench-toc:end */}',
       '',
       '# New',
       '',
@@ -234,9 +260,9 @@ describe('insertMarkdownTableOfContents', () => {
     let output = insertMarkdownTableOfContents(input, 'mdx')
 
     expect(output).toBe([
-      '{/* markdown-reflow-toc:start */}',
+      '{/* markdown-workbench-toc:start */}',
       '- [New](#new)',
-      '{/* markdown-reflow-toc:end */}',
+      '{/* markdown-workbench-toc:end */}',
       '',
       '# New',
       '',
@@ -245,9 +271,9 @@ describe('insertMarkdownTableOfContents', () => {
 
   it('migrates an existing html-marker table of contents to mdx markers', () => {
     let input = [
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Old](#old)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
       '',
       '# New',
       '',
@@ -256,9 +282,9 @@ describe('insertMarkdownTableOfContents', () => {
     let output = insertMarkdownTableOfContents(input, 'mdx')
 
     expect(output).toBe([
-      '{/* markdown-reflow-toc:start */}',
+      '{/* markdown-workbench-toc:start */}',
       '- [New](#new)',
-      '{/* markdown-reflow-toc:end */}',
+      '{/* markdown-workbench-toc:end */}',
       '',
       '# New',
       '',
@@ -270,9 +296,9 @@ describe('insertMarkdownTableOfContents', () => {
     let output = insertMarkdownTableOfContents(input)
 
     expect(output).toBe([
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '- [Heading](#heading)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
       '',
       '# Heading',
       'Text',
@@ -304,10 +330,10 @@ describe('slugifyHeading', () => {
         { level: 2, text: 'Read Docshttps://example.com then Ship' },
       ]),
     ).toEqual([
-      '<!-- markdown-reflow-toc:start -->',
+      '<!-- markdown-workbench-toc:start -->',
       '  - [Read \\[Docs\\](https://example.com), then <Code>Ship</Code>!](#read-docshttpsexamplecom-then-ship)',
       '  - [Read Docshttps://example.com then Ship](#read-docshttpsexamplecom-then-ship-1)',
-      '<!-- markdown-reflow-toc:end -->',
+      '<!-- markdown-workbench-toc:end -->',
     ])
   })
 })

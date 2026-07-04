@@ -15,7 +15,7 @@ import {
   runCommand,
   setActiveTextEditor,
   setInputBoxValue,
-  setMarkdownReflowConfiguration,
+  setMarkdownWorkbenchConfiguration,
   setQuickPickLabel,
   setWorkspaceFolders,
 } from '../testSupport/vscodeMock'
@@ -27,17 +27,31 @@ describe('extension activation and commands', () => {
     resetVscodeMock()
   })
 
-  it('registers markdown reflow commands during activation', async () => {
+  it('registers markdown workbench commands during activation', async () => {
     await activateExtension()
 
-    expect(getRegisteredCommandNames()).toEqual(
+    let registeredCommandNames = getRegisteredCommandNames()
+
+    expect(registeredCommandNames).toEqual(
       expect.arrayContaining([
-        'markdownReflow.reflow',
-        'markdownReflow.setMaxLineLength',
-        'markdownReflow.toggleMaxLineLengthIndicator',
-        'markdownReflow.setMaxLineLengthIndicatorColor',
-        'markdownReflow.generateToc',
+        'markdownWorkbench.reflow',
+        'markdownWorkbench.setMaxLineLength',
+        'markdownWorkbench.toggleMaxLineLengthIndicator',
+        'markdownWorkbench.setMaxLineLengthIndicatorColor',
+        'markdownWorkbench.generateToc',
       ]),
+    )
+    for (let legacyCommand of [
+      'markdownReflow.reflow',
+      'markdownReflow.setMaxLineLength',
+      'markdownReflow.toggleMaxLineLengthIndicator',
+      'markdownReflow.setMaxLineLengthIndicatorColor',
+      'markdownReflow.generateToc',
+    ]) {
+      expect(registeredCommandNames).not.toContain(legacyCommand)
+    }
+    await expect(runCommand('markdownReflow.reflow')).rejects.toThrow(
+      'Command is not registered: markdownReflow.reflow',
     )
   })
 
@@ -49,18 +63,18 @@ describe('extension activation and commands', () => {
     })
     setActiveTextEditor(editor)
 
-    await runCommand('markdownReflow.reflow')
+    await runCommand('markdownWorkbench.reflow')
 
     expect(editor.edit).not.toHaveBeenCalled()
     expect(getInformationMessages()).toContain(
-      'Markdown Reflow is disabled for language "plaintext".',
+      'Markdown Workbench is disabled for language "plaintext".',
     )
   })
 
   it('passes the selected line range into manual reflow when selection-only mode is enabled', async () => {
     await activateExtension()
-    setMarkdownReflowConfiguration('maxLineLength', 42)
-    setMarkdownReflowConfiguration('selectionOnlyWhenSelected', true)
+    setMarkdownWorkbenchConfiguration('maxLineLength', 42)
+    setMarkdownWorkbenchConfiguration('selectionOnlyWhenSelected', true)
     let secondParagraph =
       'This second paragraph is also long but should remain untouched because the selection does not reach it.'
     let editor = createTextEditor({
@@ -74,7 +88,7 @@ describe('extension activation and commands', () => {
     })
     setActiveTextEditor(editor)
 
-    await runCommand('markdownReflow.reflow')
+    await runCommand('markdownWorkbench.reflow')
 
     expect(editor.edit).toHaveBeenCalledOnce()
     expect(editor.document.getText()).toContain(secondParagraph)
@@ -88,14 +102,14 @@ describe('extension activation and commands', () => {
     })
     setActiveTextEditor(editor)
 
-    await runCommand('markdownReflow.generateToc')
+    await runCommand('markdownWorkbench.generateToc')
 
     expect(editor.edit).toHaveBeenCalledOnce()
-    expect(editor.document.getText()).toContain('<!-- markdown-reflow-toc:start -->')
+    expect(editor.document.getText()).toContain('<!-- markdown-workbench-toc:start -->')
     expect(editor.document.getText()).toContain('- [Heading](#heading)')
-    expect(editor.document.getText()).toContain('<!-- markdown-reflow-toc:end -->')
-    expect(editor.document.getText()).not.toContain('{/* markdown-reflow-toc:start */}')
-    expect(editor.document.getText()).not.toContain('{/* markdown-reflow-toc:end */}')
+    expect(editor.document.getText()).toContain('<!-- markdown-workbench-toc:end -->')
+    expect(editor.document.getText()).not.toContain('{/* markdown-workbench-toc:start */}')
+    expect(editor.document.getText()).not.toContain('{/* markdown-workbench-toc:end */}')
   })
 
   it('generates an mdx-safe table of contents for mdx documents', async () => {
@@ -106,14 +120,14 @@ describe('extension activation and commands', () => {
     })
     setActiveTextEditor(editor)
 
-    await runCommand('markdownReflow.generateToc')
+    await runCommand('markdownWorkbench.generateToc')
 
     expect(editor.edit).toHaveBeenCalledOnce()
-    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:start */}')
+    expect(editor.document.getText()).toContain('{/* markdown-workbench-toc:start */}')
     expect(editor.document.getText()).toContain('- [Heading](#heading)')
-    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:end */}')
-    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:start -->')
-    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:end -->')
+    expect(editor.document.getText()).toContain('{/* markdown-workbench-toc:end */}')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-workbench-toc:start -->')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-workbench-toc:end -->')
   })
 
   it('generates an mdx-safe table of contents for mdx file uris', async () => {
@@ -125,22 +139,22 @@ describe('extension activation and commands', () => {
     })
     setActiveTextEditor(editor)
 
-    await runCommand('markdownReflow.generateToc')
+    await runCommand('markdownWorkbench.generateToc')
 
     expect(editor.edit).toHaveBeenCalledOnce()
-    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:start */}')
-    expect(editor.document.getText()).toContain('{/* markdown-reflow-toc:end */}')
-    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:start -->')
-    expect(editor.document.getText()).not.toContain('<!-- markdown-reflow-toc:end -->')
+    expect(editor.document.getText()).toContain('{/* markdown-workbench-toc:start */}')
+    expect(editor.document.getText()).toContain('{/* markdown-workbench-toc:end */}')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-workbench-toc:start -->')
+    expect(editor.document.getText()).not.toContain('<!-- markdown-workbench-toc:end -->')
   })
 
   it('does not edit when the table of contents is already current', async () => {
     await activateExtension()
     let editor = createTextEditor({
       text: [
-        '<!-- markdown-reflow-toc:start -->',
+        '<!-- markdown-workbench-toc:start -->',
         '- [Heading](#heading)',
-        '<!-- markdown-reflow-toc:end -->',
+        '<!-- markdown-workbench-toc:end -->',
         '',
         '# Heading',
         '',
@@ -148,11 +162,11 @@ describe('extension activation and commands', () => {
     })
     setActiveTextEditor(editor)
 
-    await runCommand('markdownReflow.generateToc')
+    await runCommand('markdownWorkbench.generateToc')
 
     expect(editor.edit).not.toHaveBeenCalled()
     expect(getInformationMessages()).toContain(
-      'Markdown Reflow table of contents is already up to date.',
+      'Markdown Workbench table of contents is already up to date.',
     )
   })
 
@@ -160,11 +174,11 @@ describe('extension activation and commands', () => {
     await activateExtension()
     setInputBoxValue('88')
 
-    await runCommand('markdownReflow.setMaxLineLength')
+    await runCommand('markdownWorkbench.setMaxLineLength')
 
     expect(getConfigurationUpdates()).toContainEqual(
       expect.objectContaining({
-        section: 'markdownReflow',
+        section: 'markdownWorkbench',
         key: 'maxLineLength',
         value: 88,
         target: ConfigurationTarget.Workspace,
@@ -177,11 +191,11 @@ describe('extension activation and commands', () => {
     await activateExtension()
     setInputBoxValue('88')
 
-    await runCommand('markdownReflow.setMaxLineLength')
+    await runCommand('markdownWorkbench.setMaxLineLength')
 
     expect(getConfigurationUpdates()).toContainEqual(
       expect.objectContaining({
-        section: 'markdownReflow',
+        section: 'markdownWorkbench',
         key: 'maxLineLength',
         value: 88,
         target: ConfigurationTarget.Global,
@@ -193,19 +207,19 @@ describe('extension activation and commands', () => {
     await activateExtension()
     setQuickPickLabel('blue')
 
-    await runCommand('markdownReflow.toggleMaxLineLengthIndicator')
-    await runCommand('markdownReflow.setMaxLineLengthIndicatorColor')
+    await runCommand('markdownWorkbench.toggleMaxLineLengthIndicator')
+    await runCommand('markdownWorkbench.setMaxLineLengthIndicatorColor')
 
     expect(getConfigurationUpdates()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          section: 'markdownReflow',
+          section: 'markdownWorkbench',
           key: 'showMaxLineLengthIndicator',
           value: false,
           target: ConfigurationTarget.Workspace,
         }),
         expect.objectContaining({
-          section: 'markdownReflow',
+          section: 'markdownWorkbench',
           key: 'maxLineLengthIndicatorColor',
           value: 'blue',
           target: ConfigurationTarget.Workspace,
@@ -217,10 +231,10 @@ describe('extension activation and commands', () => {
   it('syncs rulers when relevant configuration changes', async () => {
     let context = await activateExtension()
     clearConfigurationUpdates()
-    setMarkdownReflowConfiguration('maxLineLength', 88)
+    setMarkdownWorkbenchConfiguration('maxLineLength', 88)
 
     emitConfigurationChange({
-      affectsConfiguration: (key: string) => key === 'markdownReflow.maxLineLength',
+      affectsConfiguration: (key: string) => key === 'markdownWorkbench.maxLineLength',
     })
     await flushPromises()
 
@@ -245,7 +259,7 @@ describe('automatic reflow command behavior', () => {
 
   it('automatically reflows changed lines that exceed the maximum length', async () => {
     await activateExtension()
-    setMarkdownReflowConfiguration('maxLineLength', 42)
+    setMarkdownWorkbenchConfiguration('maxLineLength', 42)
     let editor = createTextEditor({
       text: 'This paragraph is long enough to exceed the configured maximum line length and should wrap.\n',
     })
@@ -272,8 +286,8 @@ describe('automatic reflow command behavior', () => {
 
   it('ignores automatic reflow when the setting is disabled', async () => {
     await activateExtension()
-    setMarkdownReflowConfiguration('automaticReflow', false)
-    setMarkdownReflowConfiguration('maxLineLength', 42)
+    setMarkdownWorkbenchConfiguration('automaticReflow', false)
+    setMarkdownWorkbenchConfiguration('maxLineLength', 42)
     let editor = createTextEditor({
       text: 'This paragraph is long enough to exceed the configured maximum line length but should not wrap.\n',
     })
@@ -298,7 +312,7 @@ describe('automatic reflow command behavior', () => {
 
   it('ignores automatic reflow when the changed line is within the maximum length', async () => {
     await activateExtension()
-    setMarkdownReflowConfiguration('maxLineLength', 120)
+    setMarkdownWorkbenchConfiguration('maxLineLength', 120)
     let editor = createTextEditor({
       text: 'Short line.\n',
     })

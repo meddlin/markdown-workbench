@@ -1,7 +1,7 @@
-export const tocStartMarker = '<!-- markdown-reflow-toc:start -->'
-export const tocEndMarker = '<!-- markdown-reflow-toc:end -->'
-export const mdxTocStartMarker = '{/* markdown-reflow-toc:start */}'
-export const mdxTocEndMarker = '{/* markdown-reflow-toc:end */}'
+export const tocStartMarker = '<!-- markdown-workbench-toc:start -->'
+export const tocEndMarker = '<!-- markdown-workbench-toc:end -->'
+export const mdxTocStartMarker = '{/* markdown-workbench-toc:start */}'
+export const mdxTocEndMarker = '{/* markdown-workbench-toc:end */}'
 
 export type TocMarkerStyle = 'markdown' | 'mdx'
 
