@@ -2,7 +2,7 @@
   "name": "markdown-reflow",
   "displayName": "Markdown Reflow",
   "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "rushinglabs",
   "repository": {
     "type": "git",
