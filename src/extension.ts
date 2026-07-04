@@ -19,7 +19,11 @@ import {
   parseMaxLineLengthInput,
 } from './settings'
 import { syncMaxLineLengthRulers, type EditorRuler } from './rulers'
-import { extractMarkdownHeadings, insertMarkdownTableOfContents } from './toc'
+import {
+  extractMarkdownHeadings,
+  insertMarkdownTableOfContents,
+  type TocMarkerStyle,
+} from './toc'
 
 const automaticReflowDelayMs = 150
 const managedMaxLineLengthRulersStateKey = 'markdownReflow.managedMaxLineLengthRulers'
@@ -320,7 +324,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     let originalText = editor.document.getText()
-    let nextText = insertMarkdownTableOfContents(originalText)
+    let tocMarkerStyle = getTocMarkerStyle(editor.document)
+    let nextText = insertMarkdownTableOfContents(originalText, tocMarkerStyle)
 
     if (nextText === originalText) {
       let headings = extractMarkdownHeadings(originalText.split(/\r?\n/))
@@ -402,6 +407,14 @@ function getReflowOptions(configuration: vscode.WorkspaceConfiguration): ReflowO
 
 function getMarkdownReflowLanguages(configuration: vscode.WorkspaceConfiguration): string[] {
   return configuration.get<string[]>('languages', ['markdown', 'mdx'])
+}
+
+function getTocMarkerStyle(document: vscode.TextDocument): TocMarkerStyle {
+  let documentUri = document.uri.toString().split(/[?#]/, 1)[0].toLowerCase()
+
+  return document.languageId === 'mdx' || documentUri.endsWith('.mdx')
+    ? 'mdx'
+    : 'markdown'
 }
 
 async function syncMaxLineLengthIndicators(
