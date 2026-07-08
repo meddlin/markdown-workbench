@@ -2,7 +2,7 @@
   "name": "markdown-workbench",
   "displayName": "Markdown Workbench",
   "description": "Automatic and manual prose reflow for Markdown and MDX without touching code or MDX metadata blocks.",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "publisher": "rushinglabs",
   "repository": {
     "type": "git",
