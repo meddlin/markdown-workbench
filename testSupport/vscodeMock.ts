@@ -21,7 +21,9 @@ interface MockTextDocument {
     toString: () => string
   }
   languageId: string
+  lineCount: number
   getText: () => string
+  lineAt: (line: number) => { text: string }
   positionAt: (offset: number) => MockPosition
   __setText: (text: string) => void
 }
@@ -29,7 +31,9 @@ interface MockTextDocument {
 interface MockTextEditor {
   document: MockTextDocument
   selection: MockSelection
+  visibleRanges: Range[]
   edit: ReturnType<typeof vi.fn>
+  setDecorations: ReturnType<typeof vi.fn>
 }
 
 interface MockPosition {
@@ -66,10 +70,34 @@ export class Disposable {
 }
 
 export class Range {
+  public readonly start: MockPosition
+  public readonly end: MockPosition
+
+  constructor(start: MockPosition, end: MockPosition)
+  constructor(startLine: number, startCharacter: number, endLine: number, endCharacter: number)
   constructor(
-    public readonly start: MockPosition,
-    public readonly end: MockPosition,
-  ) {}
+    startOrStartLine: MockPosition | number,
+    endOrStartCharacter: MockPosition | number,
+    endLine?: number,
+    endCharacter?: number,
+  ) {
+    if (typeof startOrStartLine === 'number') {
+      this.start = {
+        line: startOrStartLine,
+        character: endOrStartCharacter as number,
+        offset: 0,
+      }
+      this.end = {
+        line: endLine as number,
+        character: endCharacter as number,
+        offset: 0,
+      }
+      return
+    }
+
+    this.start = startOrStartLine
+    this.end = endOrStartCharacter as MockPosition
+  }
 }
 
 export enum ConfigurationTarget {
@@ -78,15 +106,25 @@ export enum ConfigurationTarget {
   WorkspaceFolder = 3,
 }
 
+export enum DecorationRangeBehavior {
+  OpenOpen = 0,
+  ClosedClosed = 1,
+  OpenClosed = 2,
+  ClosedOpen = 3,
+}
+
 let commandCallbacks = new Map<string, (...args: unknown[]) => unknown>()
 let textDocumentChangeHandlers: Array<(event: unknown) => void> = []
 let configurationChangeHandlers: Array<(event: unknown) => void> = []
+let activeTextEditorChangeHandlers: Array<(editor: MockTextEditor | undefined) => void> = []
+let visibleRangesChangeHandlers: Array<(event: { textEditor: MockTextEditor }) => void> = []
 let markdownWorkbenchConfiguration: ConfigurationValues = {}
 let editorConfigurations = new Map<string, ConfigurationValues>()
 let configurationUpdates: ConfigurationUpdate[] = []
 let informationMessages: string[] = []
 let inputBoxValue: string | undefined
 let quickPickLabel: string | undefined
+let createdDecorationTypes: Array<{ dispose: ReturnType<typeof vi.fn>; options: unknown }> = []
 
 export const commands = {
   registerCommand: vi.fn((command: string, callback: (...args: unknown[]) => unknown) => {
@@ -99,6 +137,7 @@ export const commands = {
 
 export const window = {
   activeTextEditor: undefined as MockTextEditor | undefined,
+  visibleTextEditors: [] as MockTextEditor[],
   showInformationMessage: vi.fn(async (message: string) => {
     informationMessages.push(message)
     return message
@@ -111,6 +150,32 @@ export const window = {
 
     return items.find((item) => item.label === quickPickLabel)
   }),
+  createTextEditorDecorationType: vi.fn((options: unknown) => {
+    let decorationType = {
+      dispose: vi.fn(),
+      options,
+    }
+    createdDecorationTypes.push(decorationType)
+    return decorationType
+  }),
+  onDidChangeActiveTextEditor: vi.fn((handler: (editor: MockTextEditor | undefined) => void) => {
+    activeTextEditorChangeHandlers.push(handler)
+    return new Disposable(() => {
+      activeTextEditorChangeHandlers = activeTextEditorChangeHandlers.filter(
+        (candidate) => candidate !== handler,
+      )
+    })
+  }),
+  onDidChangeTextEditorVisibleRanges: vi.fn(
+    (handler: (event: { textEditor: MockTextEditor }) => void) => {
+      visibleRangesChangeHandlers.push(handler)
+      return new Disposable(() => {
+        visibleRangesChangeHandlers = visibleRangesChangeHandlers.filter(
+          (candidate) => candidate !== handler,
+        )
+      })
+    },
+  ),
 }
 
 export const workspace = {
@@ -140,13 +205,17 @@ export function resetVscodeMock(): void {
   commandCallbacks = new Map()
   textDocumentChangeHandlers = []
   configurationChangeHandlers = []
+  activeTextEditorChangeHandlers = []
+  visibleRangesChangeHandlers = []
   markdownWorkbenchConfiguration = {}
   editorConfigurations = new Map()
   configurationUpdates = []
   informationMessages = []
   inputBoxValue = undefined
   quickPickLabel = undefined
+  createdDecorationTypes = []
   window.activeTextEditor = undefined
+  window.visibleTextEditors = []
   workspace.workspaceFolders = [{}]
 
   commands.registerCommand.mockClear()
@@ -156,6 +225,9 @@ export function resetVscodeMock(): void {
   window.showInformationMessage.mockClear()
   window.showInputBox.mockClear()
   window.showQuickPick.mockClear()
+  window.createTextEditorDecorationType.mockClear()
+  window.onDidChangeActiveTextEditor.mockClear()
+  window.onDidChangeTextEditorVisibleRanges.mockClear()
 }
 
 export function createExtensionContext(): {
@@ -191,7 +263,13 @@ export function createTextEditor(options: MockTextEditorOptions): MockTextEditor
       toString: () => options.uri ?? 'file:///workspace/test.md',
     },
     languageId: options.languageId ?? 'markdown',
+    get lineCount() {
+      return getLines(text).length
+    },
     getText: () => text,
+    lineAt: (line) => ({
+      text: getLines(text)[line] ?? '',
+    }),
     positionAt: (offset: number) => getPositionAt(text, offset),
     __setText: (nextText: string) => {
       text = nextText
@@ -200,6 +278,7 @@ export function createTextEditor(options: MockTextEditorOptions): MockTextEditor
   let editor: MockTextEditor = {
     document,
     selection: options.selection ?? createSelection(0, 0, 0, 0),
+    visibleRanges: [new Range(getPositionAt(text, 0), getPositionAt(text, text.length))],
     edit: vi.fn(async (callback: (editBuilder: { replace: (range: Range, value: string) => void }) => void) => {
       let replacements: TextReplacement[] = []
 
@@ -218,6 +297,7 @@ export function createTextEditor(options: MockTextEditorOptions): MockTextEditor
 
       return true
     }),
+    setDecorations: vi.fn(),
   }
 
   return editor
@@ -244,6 +324,11 @@ export function createSelection(
 
 export function setActiveTextEditor(editor: MockTextEditor | undefined): void {
   window.activeTextEditor = editor
+  window.visibleTextEditors = editor ? [editor] : []
+
+  for (let handler of activeTextEditorChangeHandlers) {
+    handler(editor)
+  }
 }
 
 export function setMarkdownWorkbenchConfiguration(key: string, value: unknown): void {
@@ -292,6 +377,12 @@ export function emitConfigurationChange(event: unknown): void {
   }
 }
 
+export function emitVisibleRangesChange(editor: MockTextEditor): void {
+  for (let handler of visibleRangesChangeHandlers) {
+    handler({ textEditor: editor })
+  }
+}
+
 export function getConfigurationUpdates(): ConfigurationUpdate[] {
   return configurationUpdates
 }
@@ -302,6 +393,13 @@ export function clearConfigurationUpdates(): void {
 
 export function getInformationMessages(): string[] {
   return informationMessages
+}
+
+export function getCreatedDecorationTypes(): Array<{
+  dispose: ReturnType<typeof vi.fn>
+  options: unknown
+}> {
+  return createdDecorationTypes
 }
 
 function createConfiguration(section: string, scope: unknown): {
@@ -375,4 +473,8 @@ function getPositionAt(text: string, offset: number): MockPosition {
     character: lines[lines.length - 1].length,
     offset: boundedOffset,
   }
+}
+
+function getLines(text: string): string[] {
+  return text.split(/\r?\n/)
 }

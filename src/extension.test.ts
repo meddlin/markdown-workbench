@@ -8,7 +8,9 @@ import {
   createTextEditor,
   emitConfigurationChange,
   emitTextDocumentChange,
+  emitVisibleRangesChange,
   getConfigurationUpdates,
+  getCreatedDecorationTypes,
   getInformationMessages,
   getRegisteredCommandNames,
   resetVscodeMock,
@@ -17,7 +19,6 @@ import {
   setInputBoxValue,
   setMarkdownWorkbenchConfiguration,
   setQuickPickLabel,
-  setWorkspaceFolders,
 } from '../testSupport/vscodeMock'
 import { activate } from './extension'
 
@@ -170,7 +171,26 @@ describe('extension activation and commands', () => {
     )
   })
 
-  it('updates max line length at the workspace target when a workspace is open', async () => {
+  it('does not write editor rulers during activation', async () => {
+    let editor = createTextEditor({
+      text: 'This line is intentionally long enough to receive a runtime max line length indicator decoration.\n',
+    })
+    setActiveTextEditor(editor)
+    let context = createExtensionContext()
+
+    activate(context as never)
+    await flushPromises()
+
+    expect(getConfigurationUpdates()).not.toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        key: 'rulers',
+      }),
+    )
+    expect(editor.setDecorations).toHaveBeenCalled()
+  })
+
+  it('updates max line length at the global target when a workspace is open', async () => {
     await activateExtension()
     setInputBoxValue('88')
 
@@ -181,13 +201,12 @@ describe('extension activation and commands', () => {
         section: 'markdownWorkbench',
         key: 'maxLineLength',
         value: 88,
-        target: ConfigurationTarget.Workspace,
+        target: ConfigurationTarget.Global,
       }),
     )
   })
 
   it('updates max line length at the global target when no workspace is open', async () => {
-    setWorkspaceFolders(undefined)
     await activateExtension()
     setInputBoxValue('88')
 
@@ -216,20 +235,25 @@ describe('extension activation and commands', () => {
           section: 'markdownWorkbench',
           key: 'showMaxLineLengthIndicator',
           value: false,
-          target: ConfigurationTarget.Workspace,
+          target: ConfigurationTarget.Global,
         }),
         expect.objectContaining({
           section: 'markdownWorkbench',
           key: 'maxLineLengthIndicatorColor',
           value: 'blue',
-          target: ConfigurationTarget.Workspace,
+          target: ConfigurationTarget.Global,
         }),
       ]),
     )
   })
 
-  it('syncs rulers when relevant configuration changes', async () => {
+  it('updates runtime max line length indicators when relevant configuration changes', async () => {
+    let editor = createTextEditor({
+      text: 'This line is intentionally long enough to receive a runtime max line length indicator decoration.\n',
+    })
+    setActiveTextEditor(editor)
     let context = await activateExtension()
+    editor.setDecorations.mockClear()
     clearConfigurationUpdates()
     setMarkdownWorkbenchConfiguration('maxLineLength', 88)
 
@@ -238,16 +262,57 @@ describe('extension activation and commands', () => {
     })
     await flushPromises()
 
-    expect(context.workspaceState.update).toHaveBeenCalled()
-    expect(getConfigurationUpdates()).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          section: 'editor',
-          key: 'rulers',
-          overrideInLanguage: true,
-        }),
-      ]),
+    expect(context.workspaceState.update).not.toHaveBeenCalled()
+    expect(editor.setDecorations).toHaveBeenCalled()
+    expect(getConfigurationUpdates()).not.toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        key: 'rulers',
+      }),
     )
+  })
+
+  it('recreates runtime max line length indicators when the color changes', async () => {
+    let editor = createTextEditor({
+      text: 'This line is intentionally long enough to receive a runtime max line length indicator decoration.\n',
+    })
+    setActiveTextEditor(editor)
+    await activateExtension()
+    let createdDecorationCount = getCreatedDecorationTypes().length
+    clearConfigurationUpdates()
+    setMarkdownWorkbenchConfiguration('maxLineLengthIndicatorColor', 'blue')
+
+    emitConfigurationChange({
+      affectsConfiguration: (key: string) =>
+        key === 'markdownWorkbench.maxLineLengthIndicatorColor',
+    })
+    await flushPromises()
+
+    expect(getCreatedDecorationTypes().length).toBeGreaterThan(createdDecorationCount)
+    expect(editor.setDecorations).toHaveBeenCalled()
+    expect(getConfigurationUpdates()).not.toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        key: 'rulers',
+      }),
+    )
+  })
+
+  it('updates runtime max line length indicators when visible ranges change', async () => {
+    let editor = createTextEditor({
+      text: [
+        'This line is intentionally long enough to receive a runtime max line length indicator decoration.',
+        'This second line is also intentionally long enough to receive a runtime max line length indicator decoration.',
+        '',
+      ].join('\n'),
+    })
+    setActiveTextEditor(editor)
+    await activateExtension()
+    editor.setDecorations.mockClear()
+
+    emitVisibleRangesChange(editor)
+
+    expect(editor.setDecorations).toHaveBeenCalled()
   })
 })
 
