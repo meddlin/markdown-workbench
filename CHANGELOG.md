@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fixed the maximum line length indicator so it no longer writes `editor.rulers` entries into
+  workspace settings on activation or configuration changes.
+- Changed Markdown Workbench preference commands to save user-level settings by default.
+
 ## 0.6.1
 
 - Changed repository, homepage, and issue URLs to point to `meddlin/markdown-workbench`.
