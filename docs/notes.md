@@ -3,8 +3,7 @@
 ### Failing CI builds, package-lock.json out of sync
 
 1. Use the same major Node version as CI: this repo uses Node 24.
-2. Run npm update --package-lock-only
---ignore-scripts.
+2. Run `npm update --package-lock-only --ignore-scripts`
 3. Validate with npm ci. 
 4. For these recurring optional native package failures, also run:
 

@@ -2,8 +2,12 @@
 
 ## Unreleased
 
-- Fixed the maximum line length indicator so it no longer writes `editor.rulers` entries into
-  workspace settings on activation or configuration changes.
+- Changed the maximum line length indicator to a continuous native VS Code ruler synchronized
+  through language-specific user settings.
+- Fixed editor flicker while typing by removing per-line indicator decorations and their
+  document-change redraws.
+- Preserved unrelated user rulers and migrated extension-owned rulers from legacy workspace
+  settings.
 - Changed Markdown Workbench preference commands to save user-level settings by default.
 
 ## 0.6.1

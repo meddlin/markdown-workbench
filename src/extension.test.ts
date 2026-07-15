@@ -10,15 +10,17 @@ import {
   emitTextDocumentChange,
   emitVisibleRangesChange,
   getConfigurationUpdates,
-  getCreatedDecorationTypes,
   getInformationMessages,
   getRegisteredCommandNames,
   resetVscodeMock,
   runCommand,
   setActiveTextEditor,
+  setEditorConfiguration,
+  setGlobalEditorConfiguration,
   setInputBoxValue,
   setMarkdownWorkbenchConfiguration,
   setQuickPickLabel,
+  setWorkspaceEditorConfiguration,
 } from '../testSupport/vscodeMock'
 import { activate } from './extension'
 
@@ -171,9 +173,9 @@ describe('extension activation and commands', () => {
     )
   })
 
-  it('does not write editor rulers during activation', async () => {
+  it('installs native rulers for configured languages during activation', async () => {
     let editor = createTextEditor({
-      text: 'This line is intentionally long enough to receive a runtime max line length indicator decoration.\n',
+      text: 'Markdown content.\n',
     })
     setActiveTextEditor(editor)
     let context = createExtensionContext()
@@ -181,13 +183,34 @@ describe('extension activation and commands', () => {
     activate(context as never)
     await flushPromises()
 
-    expect(getConfigurationUpdates()).not.toContainEqual(
-      expect.objectContaining({
-        section: 'editor',
-        key: 'rulers',
-      }),
+    expect(getConfigurationUpdates()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: 'editor',
+          scope: { languageId: 'markdown' },
+          key: 'rulers',
+          value: [{ column: 100, color: '#c0c0c0' }],
+          target: ConfigurationTarget.Global,
+          overrideInLanguage: true,
+        }),
+        expect.objectContaining({
+          section: 'editor',
+          scope: { languageId: 'mdx' },
+          key: 'rulers',
+          value: [{ column: 100, color: '#c0c0c0' }],
+          target: ConfigurationTarget.Global,
+          overrideInLanguage: true,
+        }),
+      ]),
     )
-    expect(editor.setDecorations).toHaveBeenCalled()
+    expect(context.globalState.update).toHaveBeenCalledWith(
+      'markdownWorkbench.managedMaxLineLengthRulers',
+      {
+        markdown: { column: 100, color: '#c0c0c0' },
+        mdx: { column: 100, color: '#c0c0c0' },
+      },
+    )
+    expect(editor.setDecorations).not.toHaveBeenCalled()
   })
 
   it('updates max line length at the global target when a workspace is open', async () => {
@@ -247,13 +270,8 @@ describe('extension activation and commands', () => {
     )
   })
 
-  it('updates runtime max line length indicators when relevant configuration changes', async () => {
-    let editor = createTextEditor({
-      text: 'This line is intentionally long enough to receive a runtime max line length indicator decoration.\n',
-    })
-    setActiveTextEditor(editor)
+  it('moves owned native rulers when the maximum line length changes', async () => {
     let context = await activateExtension()
-    editor.setDecorations.mockClear()
     clearConfigurationUpdates()
     setMarkdownWorkbenchConfiguration('maxLineLength', 88)
 
@@ -263,22 +281,22 @@ describe('extension activation and commands', () => {
     await flushPromises()
 
     expect(context.workspaceState.update).not.toHaveBeenCalled()
-    expect(editor.setDecorations).toHaveBeenCalled()
-    expect(getConfigurationUpdates()).not.toContainEqual(
-      expect.objectContaining({
-        section: 'editor',
-        key: 'rulers',
-      }),
+    expect(context.globalState.update).toHaveBeenCalled()
+    expect(getConfigurationUpdates()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: 'editor',
+          key: 'rulers',
+          value: [{ column: 88, color: '#c0c0c0' }],
+          target: ConfigurationTarget.Global,
+          overrideInLanguage: true,
+        }),
+      ]),
     )
   })
 
-  it('recreates runtime max line length indicators when the color changes', async () => {
-    let editor = createTextEditor({
-      text: 'This line is intentionally long enough to receive a runtime max line length indicator decoration.\n',
-    })
-    setActiveTextEditor(editor)
+  it('recolors owned native rulers when the color changes', async () => {
     await activateExtension()
-    let createdDecorationCount = getCreatedDecorationTypes().length
     clearConfigurationUpdates()
     setMarkdownWorkbenchConfiguration('maxLineLengthIndicatorColor', 'blue')
 
@@ -288,31 +306,120 @@ describe('extension activation and commands', () => {
     })
     await flushPromises()
 
-    expect(getCreatedDecorationTypes().length).toBeGreaterThan(createdDecorationCount)
-    expect(editor.setDecorations).toHaveBeenCalled()
+    expect(getConfigurationUpdates()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: 'editor',
+          key: 'rulers',
+          value: [{ column: 100, color: '#007acc' }],
+          target: ConfigurationTarget.Global,
+        }),
+      ]),
+    )
+  })
+
+  it('preserves a pre-existing ruler at the desired column without claiming it', async () => {
+    setEditorConfiguration('markdown', 'rulers', [80, { column: 100, color: '#ff0000' }])
+    let context = await activateExtension()
+
+    expect(getConfigurationUpdates()).not.toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        scope: { languageId: 'markdown' },
+        key: 'rulers',
+      }),
+    )
+    expect(context.globalState.update).toHaveBeenCalledWith(
+      'markdownWorkbench.managedMaxLineLengthRulers',
+      { mdx: { column: 100, color: '#c0c0c0' } },
+    )
+  })
+
+  it('preserves general user rulers when creating language-specific entries', async () => {
+    setGlobalEditorConfiguration('rulers', [80])
+    let context = createExtensionContext()
+
+    activate(context as never)
+    await flushPromises()
+
+    expect(getConfigurationUpdates()).toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        scope: { languageId: 'markdown' },
+        key: 'rulers',
+        value: [80, { column: 100, color: '#c0c0c0' }],
+        target: ConfigurationTarget.Global,
+      }),
+    )
+  })
+
+  it('migrates a legacy owned workspace ruler before installing global rulers', async () => {
+    let context = createExtensionContext()
+    await context.workspaceState.update('markdownWorkbench.managedMaxLineLengthRulers', {
+      markdown: { column: 100, color: '#c0c0c0' },
+    })
+    setWorkspaceEditorConfiguration(
+      'markdown',
+      'rulers',
+      [80, { column: 100, color: '#c0c0c0' }, 120],
+    )
+
+    activate(context as never)
+    await flushPromises()
+
+    expect(getConfigurationUpdates()).toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        scope: { languageId: 'markdown' },
+        key: 'rulers',
+        value: [80, 120],
+        target: ConfigurationTarget.Workspace,
+        overrideInLanguage: true,
+      }),
+    )
+    expect(context.workspaceState.update).toHaveBeenLastCalledWith(
+      'markdownWorkbench.managedMaxLineLengthRulers',
+      undefined,
+    )
+    expect(getConfigurationUpdates()).toContainEqual(
+      expect.objectContaining({
+        section: 'editor',
+        scope: { languageId: 'markdown' },
+        key: 'rulers',
+        value: [{ column: 100, color: '#c0c0c0' }],
+        target: ConfigurationTarget.Global,
+      }),
+    )
+  })
+
+  it('does not redraw or synchronize the ruler while typing or scrolling', async () => {
+    let editor = createTextEditor({
+      text: 'Short line.\n',
+    })
+    setActiveTextEditor(editor)
+    await activateExtension()
+    clearConfigurationUpdates()
+
+    emitVisibleRangesChange(editor)
+    emitTextDocumentChange({
+      document: editor.document,
+      contentChanges: [{
+        range: {
+          start: { line: 0 },
+          end: { line: 0 },
+        },
+        text: 'x',
+      }],
+    })
+    await flushPromises()
+
+    expect(editor.setDecorations).not.toHaveBeenCalled()
     expect(getConfigurationUpdates()).not.toContainEqual(
       expect.objectContaining({
         section: 'editor',
         key: 'rulers',
       }),
     )
-  })
-
-  it('updates runtime max line length indicators when visible ranges change', async () => {
-    let editor = createTextEditor({
-      text: [
-        'This line is intentionally long enough to receive a runtime max line length indicator decoration.',
-        'This second line is also intentionally long enough to receive a runtime max line length indicator decoration.',
-        '',
-      ].join('\n'),
-    })
-    setActiveTextEditor(editor)
-    await activateExtension()
-    editor.setDecorations.mockClear()
-
-    emitVisibleRangesChange(editor)
-
-    expect(editor.setDecorations).toHaveBeenCalled()
   })
 })
 
