@@ -2,6 +2,11 @@ import { vi } from 'vitest'
 
 type ConfigurationValues = Record<string, unknown>
 
+interface EditorConfigurationValues {
+  global: ConfigurationValues
+  workspace: ConfigurationValues
+}
+
 interface ConfigurationUpdate {
   section: string
   scope: unknown
@@ -119,7 +124,7 @@ let configurationChangeHandlers: Array<(event: unknown) => void> = []
 let activeTextEditorChangeHandlers: Array<(editor: MockTextEditor | undefined) => void> = []
 let visibleRangesChangeHandlers: Array<(event: { textEditor: MockTextEditor }) => void> = []
 let markdownWorkbenchConfiguration: ConfigurationValues = {}
-let editorConfigurations = new Map<string, ConfigurationValues>()
+let editorConfigurations = new Map<string, EditorConfigurationValues>()
 let configurationUpdates: ConfigurationUpdate[] = []
 let informationMessages: string[] = []
 let inputBoxValue: string | undefined
@@ -236,23 +241,18 @@ export function createExtensionContext(): {
     get: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
   }
+  globalState: {
+    get: ReturnType<typeof vi.fn>
+    update: ReturnType<typeof vi.fn>
+  }
 } {
-  let state = new Map<string, unknown>()
+  let workspaceState = createMemento()
+  let globalState = createMemento()
 
   return {
     subscriptions: [],
-    workspaceState: {
-      get: vi.fn((key: string, defaultValue?: unknown) =>
-        state.has(key) ? state.get(key) : defaultValue,
-      ),
-      update: vi.fn(async (key: string, value: unknown) => {
-        if (value === undefined) {
-          state.delete(key)
-        } else {
-          state.set(key, value)
-        }
-      }),
-    },
+    workspaceState,
+    globalState,
   }
 }
 
@@ -336,7 +336,19 @@ export function setMarkdownWorkbenchConfiguration(key: string, value: unknown): 
 }
 
 export function setEditorConfiguration(languageId: string, key: string, value: unknown): void {
-  getEditorConfigurationValues(languageId)[key] = value
+  getEditorConfigurationValues(languageId).global[key] = value
+}
+
+export function setGlobalEditorConfiguration(key: string, value: unknown): void {
+  getEditorConfigurationValues('default').global[key] = value
+}
+
+export function setWorkspaceEditorConfiguration(
+  languageId: string,
+  key: string,
+  value: unknown,
+): void {
+  getEditorConfigurationValues(languageId).workspace[key] = value
 }
 
 export function setWorkspaceFolders(workspaceFolders: unknown[] | undefined): void {
@@ -404,6 +416,11 @@ export function getCreatedDecorationTypes(): Array<{
 
 function createConfiguration(section: string, scope: unknown): {
   get: <T>(key: string, defaultValue?: T) => T
+  inspect: <T>(key: string) => {
+    globalValue?: T
+    globalLanguageValue?: T
+    workspaceLanguageValue?: T
+  }
   update: (
     key: string,
     value: unknown,
@@ -411,22 +428,34 @@ function createConfiguration(section: string, scope: unknown): {
     overrideInLanguage?: boolean,
   ) => Promise<void>
 } {
-  let values =
-    section === 'editor'
-      ? getEditorConfigurationValues(getLanguageId(scope))
-      : markdownWorkbenchConfiguration
+  let editorValues = getEditorConfigurationValues(getLanguageId(scope))
+  let defaultEditorValues = getEditorConfigurationValues('default')
+  let values = section === 'editor' ? editorValues.global : markdownWorkbenchConfiguration
 
   return {
     get: <T>(key: string, defaultValue?: T): T => {
+      if (section === 'editor' && Object.hasOwn(editorValues.workspace, key)) {
+        return editorValues.workspace[key] as T
+      }
+
       return Object.hasOwn(values, key) ? (values[key] as T) : (defaultValue as T)
     },
+    inspect: <T>(key: string) => ({
+      globalValue: defaultEditorValues.global[key] as T | undefined,
+      globalLanguageValue: editorValues.global[key] as T | undefined,
+      workspaceLanguageValue: editorValues.workspace[key] as T | undefined,
+    }),
     update: async (
       key: string,
       value: unknown,
       target?: ConfigurationTarget,
       overrideInLanguage?: boolean,
     ) => {
-      values[key] = value
+      if (section === 'editor' && target === ConfigurationTarget.Workspace) {
+        editorValues.workspace[key] = value
+      } else {
+        values[key] = value
+      }
       configurationUpdates.push({
         section,
         scope,
@@ -439,15 +468,38 @@ function createConfiguration(section: string, scope: unknown): {
   }
 }
 
-function getEditorConfigurationValues(languageId: string): ConfigurationValues {
+function getEditorConfigurationValues(languageId: string): EditorConfigurationValues {
   let values = editorConfigurations.get(languageId)
 
   if (!values) {
-    values = {}
+    values = {
+      global: {},
+      workspace: {},
+    }
     editorConfigurations.set(languageId, values)
   }
 
   return values
+}
+
+function createMemento(): {
+  get: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
+} {
+  let state = new Map<string, unknown>()
+
+  return {
+    get: vi.fn((key: string, defaultValue?: unknown) =>
+      state.has(key) ? state.get(key) : defaultValue,
+    ),
+    update: vi.fn(async (key: string, value: unknown) => {
+      if (value === undefined) {
+        state.delete(key)
+      } else {
+        state.set(key, value)
+      }
+    }),
+  }
 }
 
 function getLanguageId(scope: unknown): string {

@@ -18,6 +18,7 @@ import {
   getMaxLineLengthInputValidationMessage,
   parseMaxLineLengthInput,
 } from './settings'
+import { syncMaxLineLengthRulers, type EditorRuler } from './rulers'
 import {
   extractMarkdownHeadings,
   insertMarkdownTableOfContents,
@@ -25,17 +26,11 @@ import {
 } from './toc'
 
 const automaticReflowDelayMs = 150
+const managedMaxLineLengthRulersStateKey = 'markdownWorkbench.managedMaxLineLengthRulers'
 
-let maxLineLengthIndicatorDecorationType:
-  | vscode.TextEditorDecorationType
-  | undefined
-let maxLineLengthIndicatorDecorationColor: string | undefined
+type ManagedMaxLineLengthRulers = Record<string, EditorRuler>
 
 export function activate(context: vscode.ExtensionContext) {
-  maxLineLengthIndicatorDecorationType?.dispose()
-  maxLineLengthIndicatorDecorationType = undefined
-  maxLineLengthIndicatorDecorationColor = undefined
-
   let automaticReflowEditInProgress = false
   let automaticReflowTimer: NodeJS.Timeout | undefined
   let pendingAutomaticReflow:
@@ -102,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
         nextMaxLineLength,
         vscode.ConfigurationTarget.Global,
       )
-      updateMaxLineLengthIndicators()
+      await syncMaxLineLengthIndicators(context)
       void vscode.window.showInformationMessage(
         `Markdown Workbench maximum line length set to ${nextMaxLineLength}.`,
       )
@@ -124,7 +119,7 @@ export function activate(context: vscode.ExtensionContext) {
         nextShowMaxLineLengthIndicator,
         vscode.ConfigurationTarget.Global,
       )
-      updateMaxLineLengthIndicators()
+      await syncMaxLineLengthIndicators(context)
 
       void vscode.window.showInformationMessage(
         nextShowMaxLineLengthIndicator
@@ -191,7 +186,7 @@ export function activate(context: vscode.ExtensionContext) {
         nextColor,
         vscode.ConfigurationTarget.Global,
       )
-      updateMaxLineLengthIndicators()
+      await syncMaxLineLengthIndicators(context)
 
       void vscode.window.showInformationMessage(
         `Markdown Workbench maximum line length indicator color set to ${nextColor}.`,
@@ -314,36 +309,12 @@ export function activate(context: vscode.ExtensionContext) {
         event.affectsConfiguration('markdownWorkbench.maxLineLength') ||
         event.affectsConfiguration('markdownWorkbench.showMaxLineLengthIndicator') ||
         event.affectsConfiguration('markdownWorkbench.maxLineLengthIndicatorColor') ||
-        event.affectsConfiguration('markdownWorkbench.languages')
+        event.affectsConfiguration('markdownWorkbench.languages') ||
+        event.affectsConfiguration('editor.rulers')
       ) {
-        updateMaxLineLengthIndicators()
+        void syncMaxLineLengthIndicators(context)
       }
     })
-
-  let maxLineLengthIndicatorActiveEditorDisposable =
-    vscode.window.onDidChangeActiveTextEditor(() => {
-      updateMaxLineLengthIndicators()
-    })
-
-  let maxLineLengthIndicatorVisibleRangesDisposable =
-    vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
-      updateMaxLineLengthIndicatorForEditor(event.textEditor)
-    })
-
-  let maxLineLengthIndicatorDocumentChangeDisposable =
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      let editor = vscode.window.activeTextEditor
-
-      if (editor?.document.uri.toString() === event.document.uri.toString()) {
-        updateMaxLineLengthIndicatorForEditor(editor)
-      }
-    })
-
-  let maxLineLengthIndicatorDecorationDisposable = new vscode.Disposable(() => {
-    maxLineLengthIndicatorDecorationType?.dispose()
-    maxLineLengthIndicatorDecorationType = undefined
-    maxLineLengthIndicatorDecorationColor = undefined
-  })
 
   let tocDisposable = vscode.commands.registerCommand('markdownWorkbench.generateToc', async () => {
     let editor = vscode.window.activeTextEditor
@@ -378,14 +349,10 @@ export function activate(context: vscode.ExtensionContext) {
     automaticReflowDisposable,
     clearAutomaticReflowTimerDisposable,
     maxLineLengthIndicatorConfigurationDisposable,
-    maxLineLengthIndicatorActiveEditorDisposable,
-    maxLineLengthIndicatorVisibleRangesDisposable,
-    maxLineLengthIndicatorDocumentChangeDisposable,
-    maxLineLengthIndicatorDecorationDisposable,
     tocDisposable,
   )
 
-  updateMaxLineLengthIndicators()
+  void initializeMaxLineLengthIndicators(context)
 }
 
 export function deactivate() {
@@ -450,137 +417,120 @@ function getTocMarkerStyle(document: vscode.TextDocument): TocMarkerStyle {
     : 'markdown'
 }
 
-function updateMaxLineLengthIndicators(): void {
-  let editors = vscode.window.visibleTextEditors.length
-    ? vscode.window.visibleTextEditors
-    : vscode.window.activeTextEditor
-      ? [vscode.window.activeTextEditor]
-      : []
-
-  for (let editor of editors) {
-    updateMaxLineLengthIndicatorForEditor(editor)
-  }
+async function initializeMaxLineLengthIndicators(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  await migrateLegacyWorkspaceRulers(context)
+  await syncMaxLineLengthIndicators(context)
 }
 
-function updateMaxLineLengthIndicatorForEditor(editor: vscode.TextEditor): void {
-  let markdownWorkbenchConfiguration = vscode.workspace.getConfiguration(
-    'markdownWorkbench',
-    editor.document,
-  )
+async function syncMaxLineLengthIndicators(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  let markdownWorkbenchConfiguration = vscode.workspace.getConfiguration('markdownWorkbench')
   let showMaxLineLengthIndicator = markdownWorkbenchConfiguration.get<boolean>(
     'showMaxLineLengthIndicator',
     true,
   )
-  let decorationType = getMaxLineLengthIndicatorDecorationType(
-    resolveMaxLineLengthIndicatorColor(
-      markdownWorkbenchConfiguration.get<string>(
-        'maxLineLengthIndicatorColor',
-        defaultMaxLineLengthIndicatorColor,
-      ),
+  let maxLineLength = markdownWorkbenchConfiguration.get<number>('maxLineLength', 100)
+  let color = resolveMaxLineLengthIndicatorColor(
+    markdownWorkbenchConfiguration.get<string>(
+      'maxLineLengthIndicatorColor',
+      defaultMaxLineLengthIndicatorColor,
     ),
   )
+  let languages = getMarkdownWorkbenchLanguages(markdownWorkbenchConfiguration)
+  let activeLanguages = new Set(languages)
+  let managedRulers = context.globalState.get<ManagedMaxLineLengthRulers>(
+    managedMaxLineLengthRulersStateKey,
+    {},
+  )
+  let nextManagedRulers: ManagedMaxLineLengthRulers = { ...managedRulers }
+  let languageIds = [...new Set([...languages, ...Object.keys(managedRulers)])]
 
-  if (
-    !showMaxLineLengthIndicator ||
-    !isMarkdownWorkbenchLanguageEnabled(editor.document, markdownWorkbenchConfiguration)
-  ) {
-    editor.setDecorations(decorationType, [])
-    return
+  for (let languageId of languageIds) {
+    let editorConfiguration = vscode.workspace.getConfiguration('editor', { languageId })
+    let currentRulers = getGlobalLanguageRulers(editorConfiguration)
+    let result = syncMaxLineLengthRulers(currentRulers, {
+      enabled: showMaxLineLengthIndicator && activeLanguages.has(languageId),
+      maxLineLength,
+      color,
+      previousManagedRuler: managedRulers[languageId],
+    })
+
+    if (result.changed) {
+      await editorConfiguration.update(
+        'rulers',
+        result.rulers,
+        vscode.ConfigurationTarget.Global,
+        true,
+      )
+    }
+
+    if (result.managedRuler === undefined) {
+      delete nextManagedRulers[languageId]
+    } else {
+      nextManagedRulers[languageId] = result.managedRuler
+    }
   }
 
-  let maxLineLength = markdownWorkbenchConfiguration.get<number>('maxLineLength', 100)
-  editor.setDecorations(
-    decorationType,
-    getMaxLineLengthIndicatorDecorations(editor, maxLineLength),
+  await context.globalState.update(
+    managedMaxLineLengthRulersStateKey,
+    Object.keys(nextManagedRulers).length ? nextManagedRulers : undefined,
   )
 }
 
-function getMaxLineLengthIndicatorDecorationType(
-  color: string,
-): vscode.TextEditorDecorationType {
-  if (
-    maxLineLengthIndicatorDecorationType &&
-    maxLineLengthIndicatorDecorationColor === color
-  ) {
-    return maxLineLengthIndicatorDecorationType
+async function migrateLegacyWorkspaceRulers(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  let legacyManagedRulers = context.workspaceState.get<ManagedMaxLineLengthRulers>(
+    managedMaxLineLengthRulersStateKey,
+    {},
+  )
+
+  for (let [languageId, legacyManagedRuler] of Object.entries(legacyManagedRulers)) {
+    let editorConfiguration = vscode.workspace.getConfiguration('editor', { languageId })
+    let currentRulers = getLanguageRulers(editorConfiguration, 'workspaceLanguageValue')
+    let result = syncMaxLineLengthRulers(currentRulers, {
+      enabled: false,
+      maxLineLength: typeof legacyManagedRuler === 'number'
+        ? legacyManagedRuler
+        : legacyManagedRuler.column,
+      color: typeof legacyManagedRuler === 'number'
+        ? defaultMaxLineLengthIndicatorColor
+        : legacyManagedRuler.color ?? defaultMaxLineLengthIndicatorColor,
+      previousManagedRuler: legacyManagedRuler,
+    })
+
+    if (result.changed) {
+      await editorConfiguration.update(
+        'rulers',
+        result.rulers,
+        vscode.ConfigurationTarget.Workspace,
+        true,
+      )
+    }
   }
 
-  maxLineLengthIndicatorDecorationType?.dispose()
-  maxLineLengthIndicatorDecorationColor = color
-  maxLineLengthIndicatorDecorationType = vscode.window.createTextEditorDecorationType({
-    rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-    after: {
-      contentText: '|',
-      color,
-    },
-  })
-
-  return maxLineLengthIndicatorDecorationType
+  if (Object.keys(legacyManagedRulers).length > 0) {
+    await context.workspaceState.update(managedMaxLineLengthRulersStateKey, undefined)
+  }
 }
 
-function getMaxLineLengthIndicatorDecorations(
-  editor: vscode.TextEditor,
-  maxLineLength: number,
-): vscode.DecorationOptions[] {
-  let decorations: vscode.DecorationOptions[] = []
-  let lineNumbers = getVisibleLineNumbers(editor)
-
-  for (let lineNumber of lineNumbers) {
-    let line = editor.document.lineAt(lineNumber)
-
-    if (line.text.length === 0) {
-      continue
-    }
-
-    let indicatorCharacter = Math.max(0, Math.min(maxLineLength, line.text.length) - 1)
-    let trailingColumns = Math.max(0, maxLineLength - line.text.length)
-    let decoration: vscode.DecorationOptions = {
-      range: new vscode.Range(
-        lineNumber,
-        indicatorCharacter,
-        lineNumber,
-        indicatorCharacter + 1,
-      ),
-    }
-
-    if (trailingColumns > 0) {
-      decoration.renderOptions = {
-        after: {
-          margin: `0 0 0 ${trailingColumns}ch`,
-        },
-      }
-    }
-
-    decorations.push(decoration)
-  }
-
-  return decorations
+function getLanguageRulers(
+  configuration: vscode.WorkspaceConfiguration,
+  key: 'globalLanguageValue' | 'workspaceLanguageValue',
+): EditorRuler[] {
+  let rulers = configuration.inspect<EditorRuler[]>('rulers')?.[key]
+  return Array.isArray(rulers) ? rulers : []
 }
 
-function getVisibleLineNumbers(editor: vscode.TextEditor): number[] {
-  let lineNumbers = new Set<number>()
-  let visibleRanges =
-    editor.visibleRanges.length > 0
-      ? editor.visibleRanges
-      : [
-          new vscode.Range(
-            0,
-            0,
-            Math.max(0, editor.document.lineCount - 1),
-            0,
-          ),
-        ]
-
-  for (let range of visibleRanges) {
-    let startLine = Math.max(0, range.start.line)
-    let endLine = Math.min(editor.document.lineCount - 1, range.end.line)
-
-    for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
-      lineNumbers.add(lineNumber)
-    }
-  }
-
-  return [...lineNumbers]
+function getGlobalLanguageRulers(
+  configuration: vscode.WorkspaceConfiguration,
+): EditorRuler[] {
+  let inspectedRulers = configuration.inspect<EditorRuler[]>('rulers')
+  let rulers = inspectedRulers?.globalLanguageValue ?? inspectedRulers?.globalValue
+  return Array.isArray(rulers) ? rulers : []
 }
 
 function mergeLineRanges(a: LineRange, b: LineRange): LineRange {

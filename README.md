@@ -10,9 +10,9 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
 
 - `Markdown Workbench: Reflow Prose` wraps plain prose paragraphs to a configurable line length.
 - `Markdown Workbench: Set Maximum Line Length` updates the configured prose line length.
-- `Markdown Workbench: Toggle Maximum Line Length Indicator` shows or hides the runtime line
-  length indicator at the configured prose line length.
-- `Markdown Workbench: Set Maximum Line Length Indicator Color` updates the indicator color
+- `Markdown Workbench: Toggle Maximum Line Length Indicator` shows or hides the native VS Code
+  ruler at the configured prose line length.
+- `Markdown Workbench: Set Maximum Line Length Indicator Color` updates the ruler color
   using a common color name or custom hex color.
 - `Markdown Workbench: Generate Table of Contents` inserts an anchor-linked table of contents near
   the top of the current document.
@@ -26,8 +26,9 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
   `markdownWorkbench.maxLineLength`.
 - Wraps prose to `100` columns by default, or to the user-defined
   `markdownWorkbench.maxLineLength` value when set.
-- Shows a runtime line length indicator at `markdownWorkbench.maxLineLength` by default without
-  editing workspace settings.
+- Shows a continuous native VS Code ruler at `markdownWorkbench.maxLineLength` by default.
+- Synchronizes its owned ruler through language-specific `editor.rulers` entries in VS Code user
+  settings while preserving unrelated rulers.
 - Updates `markdownWorkbench.maxLineLength` from the command palette when using
   `Markdown Workbench: Set Maximum Line Length`.
 - Toggles `markdownWorkbench.showMaxLineLengthIndicator` from the command palette when using
