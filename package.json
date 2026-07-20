@@ -165,7 +165,7 @@
     "deploy": "vsce publish"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.1",
     "@types/vscode": "1.90.0",
     "@vitest/coverage-v8": "^4.1.9",
     "@vscode/vsce": "^3.9.2",
