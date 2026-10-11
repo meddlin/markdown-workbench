@@ -85,6 +85,7 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
   let jsxDepth = 0
   let inListBlock = false
   let inListItem = false
+  let inTable = false
 
   for (let index = 0; index < lines.length; index += 1) {
     let line = lines[index]
@@ -141,6 +142,7 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
     if (trimmed === '') {
       kinds[index] = 'blank'
       inListItem = false
+      inTable = false
       continue
     }
 
@@ -167,11 +169,15 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
       continue
     }
 
+    if (!inTable && isTableStart(lines, index)) {
+      inTable = true
+    }
+
     if (
       (!continuesListItem && isIndentedCode(line)) ||
       isHeading(trimmed) ||
       isBlockquote(trimmed) ||
-      isTableLine(lines, index) ||
+      inTable ||
       (continuesListItem && isRuleOrSetextLine(trimmed))
     ) {
       kinds[index] = 'protected'
@@ -437,20 +443,15 @@ function isImportExportBoundary(trimmedLine: string, nextLine?: string): boolean
   return nextLine === undefined || nextLine.trim() === ''
 }
 
-function isTableLine(lines: string[], index: number): boolean {
+function isTableStart(lines: string[], index: number): boolean {
   let current = lines[index]?.trim() ?? ''
-  let previous = lines[index - 1]?.trim() ?? ''
   let next = lines[index + 1]?.trim() ?? ''
 
   if (!current.includes('|')) {
     return false
   }
 
-  if (isTableDelimiter(current)) {
-    return true
-  }
-
-  return isTableDelimiter(previous) || isTableDelimiter(next)
+  return isTableDelimiter(current) || isTableDelimiter(next)
 }
 
 function isTableDelimiter(line: string): boolean {

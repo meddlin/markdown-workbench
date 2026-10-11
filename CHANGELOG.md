@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Fixed reflow rewrapping table rows: every row of a pipe table is now left unchanged, not only the
+  header and the first row after the delimiter, so pasted tables keep their formatting.
+
 ## 0.7.0
 
 - Added reflow of unordered list items (`-`, `*`, `+`, including task list items) and ordered list

@@ -668,6 +668,53 @@ describe('reflowMarkdownLike list items', () => {
 
     expect(reflowMarkdownLike(input, on)).toBe(input)
   })
+
+  describe('tables', () => {
+    let tableOptions = {
+      maxLineLength: 80,
+      reflowListItems: true,
+      reflowOrderedListItems: true,
+    }
+
+    it('leaves every row of a long table unchanged, not only those next to the delimiter', () => {
+      let input = [
+        '| Concept | Main question it answers | Relationship to your book |',
+        '|---|---|---|',
+        '| **Learning sequence** | What should the reader understand next? | Determines the order of explanations and exercises |',
+        '| **Agile** | How do we deliver useful increments and adapt through feedback? | Shapes how readers apply and improve the practices |',
+        '| **DevSecOps** | How do development, security, and operations share responsibility throughout delivery and operation? | Describes how those practices connect in everyday work |',
+        '| **SAMM** | What software security practices do we have, and how should we improve them? | Provides assessment criteria and improvement guidance |',
+        '| **BSIMM** | What security activities do organizations actually perform, and how do we compare? | Provides an observational benchmark for a security initiative |',
+        '',
+      ].join('\n')
+
+      expect(reflowMarkdownLike(input, tableOptions)).toBe(input)
+    })
+
+    it('leaves tables without leading and trailing pipes unchanged', () => {
+      let input = [
+        'Concept | Main question it answers | Relationship to your book',
+        '--- | --- | ---',
+        'Learning sequence | What should the reader understand next? | Determines the order of explanations',
+        'Agile | How do we deliver useful increments and adapt through feedback? | Shapes how readers apply the practices',
+        'SAMM | What software security practices do we have, and how should we improve them? | Provides criteria',
+        '',
+      ].join('\n')
+
+      expect(reflowMarkdownLike(input, tableOptions)).toBe(input)
+    })
+
+    it('still wraps prose directly after a table once a blank line separates them', () => {
+      let table = ['| A | B |', '|---|---|', '| one | two |', '| three | four |'].join('\n')
+      let prose =
+        'This paragraph follows the table and is deliberately long enough that it must be wrapped to the limit.'
+
+      let output = reflowMarkdownLike(`${table}\n\n${prose}\n`, tableOptions)
+
+      expect(output.startsWith(`${table}\n\n`)).toBe(true)
+      expect(maxLineLength(output.slice(table.length))).toBeLessThanOrEqual(80)
+    })
+  })
 })
 
 function maxLineLength(text: string): number {
