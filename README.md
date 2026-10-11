@@ -26,6 +26,10 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
   `markdownWorkbench.maxLineLength`.
 - Wraps prose to `100` columns by default, or to the user-defined
   `markdownWorkbench.maxLineLength` value when set.
+- Wraps unordered list items (`-`, `*`, `+`) to the same width, aligning continuation lines under
+  the item text. Disable with `markdownWorkbench.reflowListItems`.
+- Wraps ordered list items (`1.` or `1)`) the same way. Disable with
+  `markdownWorkbench.reflowOrderedListItems`. Numbers are never renumbered.
 - Shows a continuous native VS Code ruler at `markdownWorkbench.maxLineLength` by default.
 - Synchronizes its owned ruler through language-specific `editor.rulers` entries in VS Code user
   settings while preserving unrelated rulers.
@@ -47,7 +51,8 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
   - ATX headings
   - blockquotes
   - tables
-  - list items and list continuation blocks
+  - unordered list items when `markdownWorkbench.reflowListItems` is disabled
+  - ordered list items when `markdownWorkbench.reflowOrderedListItems` is disabled
   - frontmatter blocks
   - MDX import/export lines and export object blocks
   - JSX/HTML blocks
@@ -59,7 +64,8 @@ reflowing Markdown prose and generating a table of contents from Markdown headin
 - `markdownWorkbench.showMaxLineLengthIndicator`
 - `markdownWorkbench.maxLineLengthIndicatorColor`
 - `markdownWorkbench.languages`
-- `markdownWorkbench.preserveListItems`
+- `markdownWorkbench.reflowListItems`
+- `markdownWorkbench.reflowOrderedListItems`
 - `markdownWorkbench.selectionOnlyWhenSelected`
 
 ## Development

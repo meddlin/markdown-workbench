@@ -5,10 +5,11 @@ export interface LineRange {
 
 export interface ReflowOptions {
   maxLineLength: number
-  preserveListItems: boolean
+  reflowListItems: boolean
+  reflowOrderedListItems: boolean
 }
 
-type LineKind = 'blank' | 'protected' | 'wrappable'
+type LineKind = 'blank' | 'protected' | 'wrappable' | 'listItem' | 'listContinuation'
 
 export function reflowMarkdownLike(
   text: string,
@@ -31,13 +32,17 @@ export function reflowMarkdownLike(
   let output: string[] = []
 
   for (let index = 0; index < lines.length; index += 1) {
-    if (kinds[index] !== 'wrappable') {
+    let kind = kinds[index]
+
+    if (kind !== 'wrappable' && kind !== 'listItem') {
       output.push(lines[index])
       continue
     }
 
     let startLine = index
-    while (index < lines.length && kinds[index] === 'wrappable') {
+    let continuationKind: LineKind = kind === 'listItem' ? 'listContinuation' : 'wrappable'
+    index += 1
+    while (index < lines.length && kinds[index] === continuationKind) {
       index += 1
     }
 
@@ -50,7 +55,11 @@ export function reflowMarkdownLike(
       continue
     }
 
-    output.push(...wrapParagraph(blockLines, options.maxLineLength))
+    output.push(
+      ...(kind === 'listItem'
+        ? wrapListItem(blockLines, options.maxLineLength)
+        : wrapParagraph(blockLines, options.maxLineLength)),
+    )
     index -= 1
   }
 
@@ -75,6 +84,7 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
   let inJsxBlock = false
   let jsxDepth = 0
   let inListBlock = false
+  let inListItem = false
 
   for (let index = 0; index < lines.length; index += 1) {
     let line = lines[index]
@@ -130,8 +140,12 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
 
     if (trimmed === '') {
       kinds[index] = 'blank'
+      inListItem = false
       continue
     }
+
+    let continuesListItem = inListItem
+    inListItem = false
 
     if (index === 0 && isFrontmatterStart(trimmed)) {
       kinds[index] = 'protected'
@@ -153,14 +167,35 @@ function classifyLines(lines: string[], options: ReflowOptions): LineKind[] {
       continue
     }
 
-    if (isIndentedCode(line) || isHeading(trimmed) || isBlockquote(trimmed) || isTableLine(lines, index)) {
+    if (
+      (!continuesListItem && isIndentedCode(line)) ||
+      isHeading(trimmed) ||
+      isBlockquote(trimmed) ||
+      isTableLine(lines, index) ||
+      (continuesListItem && isRuleOrSetextLine(trimmed))
+    ) {
       kinds[index] = 'protected'
       continue
     }
 
-    if (options.preserveListItems && isListStart(trimmed)) {
-      kinds[index] = 'protected'
-      inListBlock = true
+    if (isListStart(trimmed)) {
+      let reflowEnabled = isOrderedListStart(trimmed)
+        ? options.reflowOrderedListItems
+        : options.reflowListItems
+
+      if (reflowEnabled && isReflowableListItem(line)) {
+        kinds[index] = 'listItem'
+        inListItem = true
+      } else {
+        kinds[index] = 'protected'
+        inListBlock = true
+      }
+      continue
+    }
+
+    if (continuesListItem && !isJsxLineStart(trimmed)) {
+      kinds[index] = 'listContinuation'
+      inListItem = true
       continue
     }
 
@@ -236,6 +271,73 @@ function wrapParagraph(lines: string[], maxLineLength: number): string[] {
   return wrapped
 }
 
+function wrapListItem(lines: string[], maxLineLength: number): string[] {
+  let match = lines[0].match(listItemPattern)
+
+  if (!match) {
+    return [...lines]
+  }
+
+  let [, indent, marker, spacing, content] = match
+  let firstPrefix = `${indent}${marker}${spacing}`
+  let hangingIndent = `${indent}${' '.repeat(marker.length + spacing.length)}`
+  let words = [content, ...lines.slice(1).map((line) => line.trim())]
+    .join(' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  let tokens = keepListItemWordsTogether(words)
+  let wrapped: string[] = []
+  let prefix = firstPrefix
+  let currentLine = ''
+
+  for (let token of tokens) {
+    if (currentLine.length === 0) {
+      currentLine = token
+      continue
+    }
+
+    let candidate = `${currentLine} ${token}`
+    if (prefix.length + candidate.length <= maxLineLength) {
+      currentLine = candidate
+      continue
+    }
+
+    wrapped.push(`${prefix}${currentLine}`)
+    prefix = hangingIndent
+    currentLine = token
+  }
+
+  wrapped.push(`${prefix}${currentLine}`)
+
+  return wrapped
+}
+
+// Keeps a task checkbox with its first word, and keeps words that would start a new block
+// (such as a bare "-" or "1.") attached to the previous word so wrapping cannot change structure.
+function keepListItemWordsTogether(words: string[]): string[] {
+  let tokens: string[] = []
+  let checkboxPending = false
+
+  for (let [index, word] of words.entries()) {
+    if (index === 0 && /^\[[ xX]\]$/.test(word)) {
+      tokens.push(word)
+      checkboxPending = true
+      continue
+    }
+
+    let previous = tokens.length - 1
+    if (previous >= 0 && (checkboxPending || isBlockStartWord(word))) {
+      tokens[previous] = `${tokens[previous]} ${word}`
+      checkboxPending = false
+      continue
+    }
+
+    tokens.push(word)
+  }
+
+  return tokens
+}
+
 function rangesIntersect(a: LineRange, b: LineRange): boolean {
   return a.startLine <= b.endLine && b.startLine <= a.endLine
 }
@@ -276,6 +378,39 @@ function isBlockquote(trimmedLine: string): boolean {
 
 function isListStart(trimmedLine: string): boolean {
   return /^([*+-]|\d+[.)])\s+/.test(trimmedLine)
+}
+
+const listItemPattern = /^([\t ]*)([*+-]|\d{1,9}[.)])( {1,4})(\S.*)$/
+
+function isReflowableListItem(line: string): boolean {
+  let match = line.match(listItemPattern)
+
+  if (!match) {
+    return false
+  }
+
+  let content = match[4]
+
+  return !(
+    isRuleOrSetextLine(line.trim()) ||
+    isFenceStart(content) ||
+    isHeading(content) ||
+    isBlockquote(content) ||
+    isListStart(content) ||
+    isJsxLineStart(content)
+  )
+}
+
+function isRuleOrSetextLine(trimmedLine: string): boolean {
+  return /^(?:([*_-])(?:\s*\1){2,}|=+|-+)$/.test(trimmedLine)
+}
+
+function isBlockStartWord(word: string): boolean {
+  return /^(?:[*+-]|\d+[.)]|#{1,6}|-{2,}|=+|>.*|[`~]{3,}.*)$/.test(word)
+}
+
+function isOrderedListStart(trimmedLine: string): boolean {
+  return /^\d+[.)]\s+/.test(trimmedLine)
 }
 
 function isImportExportStart(trimmedLine: string): boolean {

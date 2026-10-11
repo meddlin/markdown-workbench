@@ -141,10 +141,15 @@
           },
           "description": "Language IDs this command is allowed to edit."
         },
-        "markdownWorkbench.preserveListItems": {
+        "markdownWorkbench.reflowListItems": {
           "type": "boolean",
           "default": true,
-          "description": "When enabled, leave Markdown list items and their continuation blocks unchanged."
+          "description": "When enabled, wrap unordered list items (-, *, +) to the maximum line length with continuation lines aligned under the item text. When disabled, leave unordered list items unchanged. Ordered lists are controlled by markdownWorkbench.reflowOrderedListItems."
+        },
+        "markdownWorkbench.reflowOrderedListItems": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, wrap ordered list items (1. or 1)) to the maximum line length with continuation lines aligned under the item text. When disabled, leave ordered list items unchanged."
         },
         "markdownWorkbench.selectionOnlyWhenSelected": {
           "type": "boolean",

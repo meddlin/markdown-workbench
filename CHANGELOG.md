@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added reflow of unordered list items (`-`, `*`, `+`, including task list items) and ordered list
+  items (`1.`, `1)`): each item wraps to the maximum line length with continuation lines aligned
+  under the item text, and nested items keep their own indentation.
+- Added `markdownWorkbench.reflowOrderedListItems` (default `true`) to toggle ordered list reflow
+  separately from unordered list reflow.
+- Breaking: replaced `markdownWorkbench.preserveListItems` with `markdownWorkbench.reflowListItems`
+  (default `true`). Set it to `false` to leave unordered list items unchanged; previously customized
+  `preserveListItems` values are no longer read.
 - Changed the maximum line length indicator to a continuous native VS Code ruler synchronized
   through language-specific user settings.
 - Fixed editor flicker while typing by removing per-line indicator decorations and their
