@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
 
 - Added reflow of unordered list items (`-`, `*`, `+`, including task list items) and ordered list
   items (`1.`, `1)`): each item wraps to the maximum line length with continuation lines aligned
