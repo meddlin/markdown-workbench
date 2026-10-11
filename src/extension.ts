@@ -401,7 +401,8 @@ function isMarkdownWorkbenchLanguageEnabled(
 function getReflowOptions(configuration: vscode.WorkspaceConfiguration): ReflowOptions {
   return {
     maxLineLength: configuration.get<number>('maxLineLength', 100),
-    preserveListItems: configuration.get<boolean>('preserveListItems', true),
+    reflowListItems: configuration.get<boolean>('reflowListItems', true),
+    reflowOrderedListItems: configuration.get<boolean>('reflowOrderedListItems', true),
   }
 }
 

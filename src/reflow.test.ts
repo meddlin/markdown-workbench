@@ -9,7 +9,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 40,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(maxLineLength(output)).toBeLessThanOrEqual(40)
@@ -21,7 +22,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 120,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toBe(input)
@@ -32,7 +34,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 10,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output.split('\n')[0]).toBe('supercalifragilisticexpialidocious')
@@ -48,7 +51,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 36,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain('\n\n')
@@ -62,7 +66,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 38,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain('\r\n')
@@ -91,13 +96,15 @@ describe('reflowMarkdownLike', () => {
     expect(
       reflowMarkdownLike(yamlFrontmatter, {
         maxLineLength: 40,
-        preserveListItems: true,
+        reflowListItems: false,
+        reflowOrderedListItems: false,
       }),
     ).toContain('title: A heading-looking # value should remain untouched\n')
     expect(
       reflowMarkdownLike(tomlFrontmatter, {
         maxLineLength: 40,
-        preserveListItems: true,
+        reflowListItems: false,
+        reflowOrderedListItems: false,
       }),
     ).toContain('title = "A heading-looking # value should remain untouched"\n')
   })
@@ -130,7 +137,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 48,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain('export const article = {\n')
@@ -158,7 +166,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 44,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain(`\`\`\`\n${codeLine}\n\`\`\``)
@@ -178,7 +187,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 38,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain(`~~~md\n${codeLine}\n~~~`)
@@ -197,7 +207,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 44,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain(
@@ -220,7 +231,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 44,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain(
@@ -242,7 +254,8 @@ describe('reflowMarkdownLike', () => {
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 42,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output).toContain(
@@ -251,27 +264,13 @@ describe('reflowMarkdownLike', () => {
     expect(maxLineLength(extractParagraph(output, 'This prose paragraph'))).toBeLessThanOrEqual(42)
   })
 
-  it('reflows list items when list preservation is disabled', () => {
-    let input = [
-      '- This list item should wrap when preserveListItems is disabled because callers opted into treating lists as prose.',
-      '',
-    ].join('\n')
-
-    let output = reflowMarkdownLike(input, {
-      maxLineLength: 42,
-      preserveListItems: false,
-    })
-
-    expect(output).not.toBe(input)
-    expect(maxLineLength(output)).toBeLessThanOrEqual(42)
-  })
-
   it('preserves the first line indentation when wrapping an indented paragraph', () => {
     let input = '  This indented paragraph should wrap while keeping the leading spaces on each wrapped output line.\n'
 
     let output = reflowMarkdownLike(input, {
       maxLineLength: 34,
-      preserveListItems: true,
+      reflowListItems: false,
+      reflowOrderedListItems: false,
     })
 
     expect(output.split('\n').filter(Boolean).every((line) => line.startsWith('  '))).toBe(true)
@@ -290,7 +289,8 @@ describe('reflowMarkdownLike', () => {
       input,
       {
         maxLineLength: 40,
-        preserveListItems: true,
+        reflowListItems: false,
+        reflowOrderedListItems: false,
       },
       {
         startLine: 0,
@@ -318,7 +318,8 @@ describe('reflowMarkdownLike', () => {
       input,
       {
         maxLineLength: 42,
-        preserveListItems: true,
+        reflowListItems: false,
+        reflowOrderedListItems: false,
       },
       {
         startLine: 1,
@@ -331,6 +332,341 @@ describe('reflowMarkdownLike', () => {
     expect(secondParagraph).toBe(
       'This second paragraph should remain untouched because the selection does not intersect it.',
     )
+  })
+})
+
+describe('reflowMarkdownLike list items', () => {
+  let on = { maxLineLength: 30, reflowListItems: true, reflowOrderedListItems: true }
+  let off = { maxLineLength: 30, reflowListItems: false, reflowOrderedListItems: false }
+
+  it('wraps an unordered list item with continuation lines aligned under the item text', () => {
+    let input = '- first item is fairly long and needs wrapping here\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      ['- first item is fairly long', '  and needs wrapping here', ''].join('\n'),
+    )
+  })
+
+  it('keeps consecutive list items separate', () => {
+    let input = [
+      '- first item is fairly long and needs wrapping here',
+      '- second item is also long and needs wrapping too',
+      '',
+    ].join('\n')
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      [
+        '- first item is fairly long',
+        '  and needs wrapping here',
+        '- second item is also long and',
+        '  needs wrapping too',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it.each(['-', '*', '+'])('supports the %s bullet marker', (marker) => {
+    let output = reflowMarkdownLike(`${marker} first item is fairly long and needs wrapping\n`, on)
+
+    expect(output).toBe(`${marker} first item is fairly long\n  and needs wrapping\n`)
+  })
+
+  it('joins lazy continuation lines into the item before wrapping', () => {
+    let input = '- short start\ncontinued on a lazy line\n  and an indented one\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      ['- short start continued on a', '  lazy line and an indented', '  one', ''].join('\n'),
+    )
+  })
+
+  it('wraps nested items independently using their own indentation', () => {
+    let input = [
+      '- parent item with enough words to wrap',
+      '  - nested item with enough words to wrap too',
+      '',
+    ].join('\n')
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      [
+        '- parent item with enough',
+        '  words to wrap',
+        '  - nested item with enough',
+        '    words to wrap too',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('uses the full marker width as the hanging indent when extra spaces follow the marker', () => {
+    let input = '-   first item is fairly long and needs wrapping\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      ['-   first item is fairly long', '    and needs wrapping', ''].join('\n'),
+    )
+  })
+
+  it('keeps task list checkboxes attached to the first word', () => {
+    let input = '- [ ] a task whose checkbox must not be split\n- [x] done\n'
+
+    let output = reflowMarkdownLike(input, { ...on, maxLineLength: 12 })
+
+    expect(output).toBe(
+      ['- [ ] a task', '  whose', '  checkbox', '  must not', '  be split', '- [x] done', ''].join('\n'),
+    )
+  })
+
+  it('does not let a wrapped line begin with a list marker or heading marker', () => {
+    let input = '- alpha beta gamma - delta epsilon # zeta eta theta\n'
+
+    let output = reflowMarkdownLike(input, { ...on, maxLineLength: 18 })
+
+    for (let line of output.trimEnd().split('\n').slice(1)) {
+      expect(line).toMatch(/^ {2}[^-#\s]/)
+    }
+    expect(output.replace(/\n {2}/g, ' ')).toBe(input)
+  })
+
+  it('leaves items that fit within the limit unchanged', () => {
+    let input = '- short item\n  - nested short item\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(input)
+  })
+
+  it('is idempotent', () => {
+    let input = [
+      '- first item is fairly long and needs wrapping here',
+      '  - nested item with enough words to wrap too',
+      '- [ ] a task whose checkbox must not be split',
+      '',
+    ].join('\n')
+
+    let once = reflowMarkdownLike(input, on)
+
+    expect(reflowMarkdownLike(once, on)).toBe(once)
+  })
+
+  it('wraps items separated by blank lines and preserves the blank lines', () => {
+    let input = '- first item is fairly long and needs wrapping\n\n- second item is also long and wraps\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      [
+        '- first item is fairly long',
+        '  and needs wrapping',
+        '',
+        '- second item is also long and',
+        '  wraps',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('preserves CRLF line endings', () => {
+    let input = '- first item is fairly long and needs wrapping\r\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      '- first item is fairly long\r\n  and needs wrapping\r\n',
+    )
+  })
+
+  it('does not merge a list into the paragraph above it', () => {
+    let input = 'Intro paragraph text\n- first item is fairly long and needs wrapping\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      ['Intro paragraph text', '- first item is fairly long', '  and needs wrapping', ''].join('\n'),
+    )
+  })
+
+  it('only wraps items that intersect the selection', () => {
+    let input = [
+      '- first item is fairly long and needs wrapping',
+      '- second item is also long and needs wrapping',
+      '',
+    ].join('\n')
+
+    let output = reflowMarkdownLike(input, on, { startLine: 1, endLine: 1 })
+
+    expect(output).toBe(
+      [
+        '- first item is fairly long and needs wrapping',
+        '- second item is also long and',
+        '  needs wrapping',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('leaves list items unchanged when list reflow is disabled', () => {
+    let input = '- first item is fairly long and needs wrapping here\n- second item is also long and needs wrapping too\n'
+
+    expect(reflowMarkdownLike(input, off)).toBe(input)
+  })
+
+  it('wraps an ordered list item with continuation lines aligned under the item text', () => {
+    let input = '1. first item is fairly long and needs wrapping here\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      ['1. first item is fairly long', '   and needs wrapping here', ''].join('\n'),
+    )
+  })
+
+  it('uses a wider hanging indent for multi-digit numbers and ) delimiters', () => {
+    let input = '10) tenth item is fairly long and needs wrapping\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      ['10) tenth item is fairly long', '    and needs wrapping', ''].join('\n'),
+    )
+  })
+
+  it('keeps consecutive ordered items separate and does not renumber them', () => {
+    let input = [
+      '1. first item is fairly long and needs wrapping',
+      '3. second item is also long and needs wrapping',
+      '',
+    ].join('\n')
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      [
+        '1. first item is fairly long',
+        '   and needs wrapping',
+        '3. second item is also long',
+        '   and needs wrapping',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('wraps unordered items nested inside ordered items and the reverse', () => {
+    let input = [
+      '1. ordered parent with enough words to wrap',
+      '   - nested bullet with enough words to wrap',
+      '- bullet parent with enough words to wrap',
+      '  1. nested number with enough words to wrap',
+      '',
+    ].join('\n')
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      [
+        '1. ordered parent with enough',
+        '   words to wrap',
+        '   - nested bullet with enough',
+        '     words to wrap',
+        '- bullet parent with enough',
+        '  words to wrap',
+        '  1. nested number with enough',
+        '     words to wrap',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('does not let a wrapped line begin with an ordered list marker', () => {
+    let input = '1. alpha beta gamma released in 1986. delta epsilon zeta\n'
+
+    let output = reflowMarkdownLike(input, { ...on, maxLineLength: 28 })
+
+    for (let line of output.trimEnd().split('\n').slice(1)) {
+      expect(line).not.toMatch(/^\s*\d+[.)]/)
+    }
+    expect(output.replace(/\n {3}/g, ' ')).toBe(input)
+  })
+
+  it('is idempotent for ordered lists', () => {
+    let input = '1. first item is fairly long and needs wrapping here\n   1. nested number with enough words to wrap\n'
+
+    let once = reflowMarkdownLike(input, on)
+
+    expect(reflowMarkdownLike(once, on)).toBe(once)
+  })
+
+  it('leaves ordered list items unchanged when only ordered reflow is disabled', () => {
+    let input = '1. first item is fairly long and needs wrapping here\n   continuation stays put\n'
+
+    expect(reflowMarkdownLike(input, { ...on, reflowOrderedListItems: false })).toBe(input)
+  })
+
+  it('leaves unordered list items unchanged when only unordered reflow is disabled', () => {
+    let input = '- first item is fairly long and needs wrapping here\n'
+
+    expect(reflowMarkdownLike(input, { ...on, reflowListItems: false })).toBe(input)
+  })
+
+  it('wraps each list kind independently when the other kind is disabled', () => {
+    let input = [
+      '- bullet item is fairly long and needs wrapping',
+      '',
+      '1. numbered item is fairly long and needs wrapping',
+      '',
+    ].join('\n')
+
+    expect(reflowMarkdownLike(input, { ...on, reflowOrderedListItems: false })).toBe(
+      [
+        '- bullet item is fairly long',
+        '  and needs wrapping',
+        '',
+        '1. numbered item is fairly long and needs wrapping',
+        '',
+      ].join('\n'),
+    )
+    expect(reflowMarkdownLike(input, { ...on, reflowListItems: false })).toBe(
+      [
+        '- bullet item is fairly long and needs wrapping',
+        '',
+        '1. numbered item is fairly',
+        '   long and needs wrapping',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('leaves thematic breaks that look like list markers unchanged', () => {
+    let input = '- - -\n* * *\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(input)
+  })
+
+  it.each([
+    ['a fenced code block', ['- ```ts', '  let value = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8', '  ```']],
+    ['a heading', ['- # heading text that is longer than the configured limit']],
+    ['a blockquote', ['- > quoted text that is longer than the configured limit']],
+    ['a nested marker', ['- - nested text that is longer than the configured limit']],
+    ['html', ['- <kbd>Ctrl</kbd> text that is longer than the configured limit']],
+  ])('leaves an item whose content starts with %s unchanged', (_name, lines) => {
+    let input = `${lines.join('\n')}\n`
+
+    expect(reflowMarkdownLike(input, on)).toBe(input)
+  })
+
+  it('leaves fenced code nested inside an item unchanged', () => {
+    let input = [
+      '- item introducing a long code sample below',
+      '  ```ts',
+      '  let value = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9',
+      '  ```',
+      '',
+    ].join('\n')
+
+    expect(reflowMarkdownLike(input, on)).toBe(
+      [
+        '- item introducing a long code',
+        '  sample below',
+        '  ```ts',
+        '  let value = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9',
+        '  ```',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  it('does not join a setext underline into the item text', () => {
+    let input = '- item text\n  ---\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(input)
+  })
+
+  it('leaves list items inside indented code blocks unchanged', () => {
+    let input = 'Paragraph.\n\n    - code that is longer than the configured limit for sure\n'
+
+    expect(reflowMarkdownLike(input, on)).toBe(input)
   })
 })
 

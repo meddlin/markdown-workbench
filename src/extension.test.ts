@@ -98,6 +98,62 @@ describe('extension activation and commands', () => {
     expect(editor.document.getText().split('\n\n')[0].split('\n').length).toBeGreaterThan(1)
   })
 
+  it('reflows unordered list items by default', async () => {
+    await activateExtension()
+    setMarkdownWorkbenchConfiguration('maxLineLength', 30)
+    let editor = createTextEditor({
+      text: '- first item is fairly long and needs wrapping here\n',
+    })
+    setActiveTextEditor(editor)
+
+    await runCommand('markdownWorkbench.reflow')
+
+    expect(editor.document.getText()).toBe(
+      '- first item is fairly long\n  and needs wrapping here\n',
+    )
+  })
+
+  it('leaves list items unchanged when reflowListItems is disabled', async () => {
+    await activateExtension()
+    setMarkdownWorkbenchConfiguration('maxLineLength', 30)
+    setMarkdownWorkbenchConfiguration('reflowListItems', false)
+    let text = '- first item is fairly long and needs wrapping here\n'
+    let editor = createTextEditor({ text })
+    setActiveTextEditor(editor)
+
+    await runCommand('markdownWorkbench.reflow')
+
+    expect(editor.document.getText()).toBe(text)
+  })
+
+  it('reflows ordered list items by default', async () => {
+    await activateExtension()
+    setMarkdownWorkbenchConfiguration('maxLineLength', 30)
+    let editor = createTextEditor({
+      text: '1. first item is fairly long and needs wrapping here\n',
+    })
+    setActiveTextEditor(editor)
+
+    await runCommand('markdownWorkbench.reflow')
+
+    expect(editor.document.getText()).toBe(
+      '1. first item is fairly long\n   and needs wrapping here\n',
+    )
+  })
+
+  it('leaves ordered list items unchanged when reflowOrderedListItems is disabled', async () => {
+    await activateExtension()
+    setMarkdownWorkbenchConfiguration('maxLineLength', 30)
+    setMarkdownWorkbenchConfiguration('reflowOrderedListItems', false)
+    let text = '1. first item is fairly long and needs wrapping here\n'
+    let editor = createTextEditor({ text })
+    setActiveTextEditor(editor)
+
+    await runCommand('markdownWorkbench.reflow')
+
+    expect(editor.document.getText()).toBe(text)
+  })
+
   it('generates a table of contents when the document changes', async () => {
     await activateExtension()
     let editor = createTextEditor({
