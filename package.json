@@ -170,10 +170,10 @@
     "deploy": "vsce publish"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.1",
     "@types/vscode": "1.90.0",
     "@vitest/coverage-v8": "^4.1.9",
-    "@vscode/vsce": "^3.9.2",
+    "@vscode/vsce": "^4.0.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
