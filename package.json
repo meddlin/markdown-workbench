@@ -172,7 +172,7 @@
   "devDependencies": {
     "@types/node": "^26.6.1",
     "@types/vscode": "1.90.0",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^5.0.3",
     "@vscode/vsce": "^4.0.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
